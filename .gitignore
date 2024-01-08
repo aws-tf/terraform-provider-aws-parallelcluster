@@ -1,6 +1,8 @@
 # General
 .ignore/
 .DS_Store
+build/
+logs/
 
 # IDE
 .idea/
@@ -10,3 +12,5 @@
 .terraform/
 tfplan
 terraform.tfstate
+terraform.tfstate.backup
+terraform.tfvars
