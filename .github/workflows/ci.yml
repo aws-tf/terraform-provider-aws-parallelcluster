@@ -50,6 +50,13 @@ jobs:
         with:
           terraform_version: ${{ matrix.terraform }}
           terraform_wrapper: false
+      - run: go mod download
+      - env:
+          TF_ACC: "1"
+          TEST_REGION: "us-east-1"
+          TEST_CLUSTER_NAME: "test-cluster"
+        run: go test ./... -v -run="^TestUnit"
+        timeout-minutes: 10
   end-to-end-tests:
     name: End To End Tests
     runs-on: ubuntu-latest
