@@ -55,6 +55,11 @@ func TestEnd2EndCluster(t *testing.T) {
 		"role_arn":     config.StringVariable(os.Getenv("TEST_ROLE")),
 	}
 
+	if endpoint, ok := os.LookupEnv("TEST_ENDPOINT"); ok {
+		configVariables["endpoint"] = config.StringVariable(endpoint)
+		configUpdateVariables["endpoint"] = config.StringVariable(endpoint)
+	}
+
 	t.Parallel()
 
 	resource.Test(t, resource.TestCase{
