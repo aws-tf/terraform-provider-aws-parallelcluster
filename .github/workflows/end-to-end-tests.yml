@@ -38,5 +38,6 @@ jobs:
           TEST_REGION: "us-east-1"
           TEST_CLUSTER_NAME: "test-cluster"
           TEST_ROLE: ${{ secrets.ACTION_E2E_TESTS_ROLE }}
+          TEST_ENDPOINT: ${{ secrets.ACTION_E2E_TESTS_ENDPOINT }}
         run: go test ./... -v -run="^TestEnd2End" -timeout 60m
-        timeout-minutes: 125
+        timeout-minutes: 65
