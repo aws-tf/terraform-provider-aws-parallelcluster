@@ -7,7 +7,7 @@
 - ...
 
 **CHANGES**
-- Official release of the AWS ParallelCluster Provider/Module for Terraform with support for ParallelCluster 3.8.0.
+- First official release of the AWS ParallelCluster Provider for Terraform with support for ParallelCluster 3.9.0.
 
 **BUG FIXES**
 - ...
