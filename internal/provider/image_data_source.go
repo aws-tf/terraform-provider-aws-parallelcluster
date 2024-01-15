@@ -183,7 +183,11 @@ func (d *ImageDataSource) Read(
 
 	image, rawHttp, err := imageReq.Execute()
 	if err != nil {
-		resp.Diagnostics.AddError(fmt.Sprintf("%v", err), fmt.Sprintf("%v", rawHttp.Body))
+		if rawHttp != nil {
+			resp.Diagnostics.AddError(fmt.Sprintf("%v", err), fmt.Sprintf("%v", rawHttp.Body))
+		} else {
+			resp.Diagnostics.AddError("Error while describing existing image.", fmt.Sprintf("%v", err))
+		}
 	}
 
 	// Retrieve image configuration
@@ -310,7 +314,11 @@ func (d *ImageDataSource) Read(
 
 	logStreams, rawHttp, err := imageLogStreamReq.Execute()
 	if err != nil {
-		resp.Diagnostics.AddError(fmt.Sprintf("%v", err), fmt.Sprintf("%v", rawHttp.Body))
+		if rawHttp != nil {
+			resp.Diagnostics.AddError(fmt.Sprintf("%v", err), fmt.Sprintf("%v", rawHttp.Body))
+		} else {
+			resp.Diagnostics.AddError("Error while listing image log streams.", fmt.Sprintf("%v", err))
+		}
 	}
 
 	if logStreams != nil {
