@@ -401,10 +401,17 @@ func (d *ClusterDataSource) Read(
 		data.ClusterName.ValueString(),
 	).Execute()
 	if err != nil {
-		resp.Diagnostics.AddError(
-			fmt.Sprintf("%v", err.Error()),
-			fmt.Sprintf("%v", rawHttp.Body),
-		)
+		if rawHttp != nil {
+			resp.Diagnostics.AddError(
+				fmt.Sprintf("%v", err.Error()),
+				fmt.Sprintf("%v", rawHttp.Body),
+			)
+		} else {
+			resp.Diagnostics.AddError(
+				"Error while describing cluster.",
+				fmt.Sprintf("%v", err.Error()),
+			)
+		}
 		return
 	}
 
@@ -418,10 +425,17 @@ func (d *ClusterDataSource) Read(
 		data.ClusterName.ValueString(),
 	).Execute()
 	if err != nil {
-		resp.Diagnostics.AddError(
-			fmt.Sprintf("%v", err.Error()),
-			fmt.Sprintf("%v", rawHttp.Body),
-		)
+		if rawHttp != nil {
+			resp.Diagnostics.AddError(
+				fmt.Sprintf("%v", err.Error()),
+				fmt.Sprintf("%v", rawHttp.Body),
+			)
+		} else {
+			resp.Diagnostics.AddError(
+				"Error while listing cluster log streams.",
+				fmt.Sprintf("%v", err.Error()),
+			)
+		}
 	}
 
 	data.LogStreams = types.ListNull(types.StringType)

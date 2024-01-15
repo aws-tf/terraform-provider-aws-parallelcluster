@@ -376,10 +376,17 @@ func (r *ClusterResource) Create(
 		RollbackOnFailure(data.RollbackOnFailure.ValueBool()).
 		Execute()
 	if err != nil {
-		resp.Diagnostics.AddError(
-			fmt.Sprintf("%v", err),
-			fmt.Sprintf("%v", rawHttp.Body),
-		)
+		if rawHttp != nil {
+			resp.Diagnostics.AddError(
+				fmt.Sprintf("%v", err),
+				fmt.Sprintf("%v", rawHttp.Body),
+			)
+		} else {
+			resp.Diagnostics.AddError(
+				"Error while creating cluster.",
+				fmt.Sprintf("%v", err),
+			)
+		}
 		return
 	}
 	// response from `CreateCluster`: CreateClusterResponseContent
@@ -515,9 +522,15 @@ func (r *ClusterResource) Update(
 
 	content, fullResp, err := clusterUpdateRequest.Execute()
 	if err != nil || content == nil {
-		resp.Diagnostics.AddError("Failure while updating cluster.",
-			fmt.Sprintf("Error: %v\nMessage: %v\n", err, fullResp.Body),
-		)
+		if fullResp != nil {
+			resp.Diagnostics.AddError("Failure while updating cluster.",
+				fmt.Sprintf("Error: %v\nMessage: %v\n", err, fullResp.Body),
+			)
+		} else {
+			resp.Diagnostics.AddError("Failure while updating cluster.",
+				fmt.Sprintf("Error: %v\n", err),
+			)
+		}
 		return
 	}
 
