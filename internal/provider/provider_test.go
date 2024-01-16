@@ -36,14 +36,14 @@ func testAccPreCheck(t *testing.T) {
 
 	if _, ok := os.LookupEnv("TEST_REGION"); !ok {
 		t.Fatal(`
-      Envionment 'TEST_REGION' is not set.
-      Set this envionment variable to specifiy the aws region for the tests to run in.
+      Environment 'TEST_REGION' is not set.
+      Set this environment variable to specify the aws region for the tests to run in.
     `)
 	}
 	if _, ok := os.LookupEnv("TEST_CLUSTER_NAME"); !ok {
 		t.Fatal(`
-      Envionment 'TEST_CLUSTER_NAME' is not set.
-      Set this envionment variable to specifiy the name of the test cluster.
+      Environment 'TEST_CLUSTER_NAME' is not set.
+      Set this environment variable to specify the name of the test cluster.
     `)
 	}
 }
