@@ -55,5 +55,5 @@ jobs:
           TF_ACC: "1"
           TEST_REGION: "us-east-1"
           TEST_CLUSTER_NAME: "test-cluster"
-        run: go test ./... -v -run="^TestUnit"
+        run: go test ./... -v -run="^TestUnit" -cover
         timeout-minutes: 10
