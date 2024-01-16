@@ -40,4 +40,4 @@ testend2end:
 	TF_ACC=1 go test ./... -v -run="^TestEnd2End" $(TESTARGS) -timeout 120m
 
 testunit:
-	TF_ACC=1 go test ./... -v -run="^TestUnit" $(TESTARGS) -timeout 10m
+	TF_ACC=1 go test ./... -v -run="^TestUnit" $(TESTARGS) -timeout 10m -cover
