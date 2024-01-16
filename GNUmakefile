@@ -1,6 +1,6 @@
-default: build 
+default: build
 
-version = 3.9.0-1 
+version = 3.9.0-1
 install_path = ~/.terraform.d/plugins/terraform.local/local/pcluster/$(version)
 file_name = terraform-provider-pcluster_$(version)
 
@@ -16,16 +16,16 @@ linux_amd64:
 
 install_darwin_arm64: darwin_arm64
 	mkdir -p $(install_path)/darwin_arm64
-	install build/darwin_arm64 $(install_path)/darwin_arm64/$(file_name) 
+	install build/darwin_arm64 $(install_path)/darwin_arm64/$(file_name)
 install_darwin_amd64: darwin_amd64
 	mkdir -p $(install_path)/darwin_amd64
-	install build/darwin_amd64 $(install_path)/darwin_amd64/$(file_name) 
+	install build/darwin_amd64 $(install_path)/darwin_amd64/$(file_name)
 install_windows_amd64: windows_amd64
 	mkdir -p $(install_path)/windows_amd64
-	install build/windows_amd64 $(install_path)/windows_amd64/$(file_name) 
+	install build/windows_amd64 $(install_path)/windows_amd64/$(file_name)
 install_linux_amd64: linux_amd64
 	mkdir -p $(install_path)/linux_amd64
-	install build/linux_amd64 $(install_path)/linux_amd64/$(file_name) 
+	install build/linux_amd64 $(install_path)/linux_amd64/$(file_name)
 
 all: darwin_arm64 darwin_amd64 windows_amd64 linux_amd64
 
