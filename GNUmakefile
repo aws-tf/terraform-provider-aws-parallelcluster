@@ -1,10 +1,15 @@
 default: build
 
-version = 3.9.0-1
-install_path = ~/.terraform.d/plugins/terraform.local/local/pcluster/$(version)
-file_name = terraform-provider-pcluster_$(version)
+ifndef VERSION 
+	VERSION = 3.9.0-1
+endif
+
+install_path = ~/.terraform.d/plugins/terraform.local/local/pcluster/$(VERSION)
+file_name = terraform-provider-pcluster_$(VERSION)
 
 .PHONY: testacc darwin_arm64 darwin_amd64 windows_amd64 linux_amd64 all install
+
+# Build
 darwin_arm64:
 	env GOOS=darwin GOARCH=arm64 go build -o build/darwin_arm64
 darwin_amd64:
@@ -14,6 +19,9 @@ windows_amd64:
 linux_amd64:
 	env GOOS=linux GOARCH=amd64 go build -o build/linux_amd64
 
+build: darwin_arm64 darwin_amd64 windows_amd64 linux_amd64
+
+# Install
 install_darwin_arm64: darwin_arm64
 	mkdir -p $(install_path)/darwin_arm64
 	install build/darwin_arm64 $(install_path)/darwin_arm64/$(file_name)
@@ -27,17 +35,37 @@ install_linux_amd64: linux_amd64
 	mkdir -p $(install_path)/linux_amd64
 	install build/linux_amd64 $(install_path)/linux_amd64/$(file_name)
 
-all: darwin_arm64 darwin_amd64 windows_amd64 linux_amd64
-
 install: install_darwin_arm64 install_darwin_amd64 install_windows_amd64 install_linux_amd64
 
-# Run acceptance tests
+# Uninstall
+uninstall_darwin_arm64:
+	rm -rf $(install_path)/darwin_arm64/$(file_name)
+uninstall_darwin_amd64:
+	rm -rf $(install_path)/darwin_amd64/$(file_name)
+uninstall_windows_amd64:
+	rm -rf $(install_path)/windows_amd64/$(file_name)
+uninstall_linux_amd64:
+	rm -rf $(install_path)/linux_amd64/$(file_name)
+
+uninstall: uninstall_darwin_arm64 uninstall_darwin_amd64 uninstall_windows_amd64 uninstall_linux_amd64
+
+# Clean 
+clean:
+	rm -rf build/*
+
+# Run tests
 
 test:
 	TF_ACC=1 go test ./... -v $(TESTARGS) -timeout 120m
+	cd internal/provider/openapi; \
+	TF_ACC=1 go test ./... -v -run="^Test_openapi" $(TESTARGS) -timeout 10m -cover
 
-testend2end:
+test_end2end:
 	TF_ACC=1 go test ./... -v -run="^TestEnd2End" $(TESTARGS) -timeout 120m
 
-testunit:
+test_unit:
 	TF_ACC=1 go test ./... -v -run="^TestUnit" $(TESTARGS) -timeout 10m -cover
+
+test_generated:
+	cd internal/provider/openapi; \
+	TF_ACC=1 go test ./... -v -run="^Test_openapi" $(TESTARGS) -timeout 10m -cover
