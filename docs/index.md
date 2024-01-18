@@ -29,9 +29,11 @@ provider "pcluster" {
 ### Optional
 
 - `api_name` (String) The name of the ParallelCluster api. Used to retrieve the api endpoint if not given. Defaults to ParallelCluster.
+- `api_stack_name` (String) The ParallelCluster cloudformation stack arn containing the endpoint and role outputs.
 - `aws_key` (String) The aws key used for deploying resources and query data sources.
 - `aws_secret` (String, Sensitive) The aws secret used for deploying resources and query data sources.
 - `endpoint` (String) The endpoint of the ParallelCluster API. If unset will be autodetected.
 - `profile` (String) The aws profile used for deploying resources and query data sources.
 - `region` (String) The region used for deploying resources and query data sources.
 - `role_arn` (String) The role used for deploying resources and query data sources.
+- `use_user_role` (Boolean) Whether or not to use the user role exported by the ParallelCluster cloudformation stack. Either set this to true, supply a `role_arn` or set neither.
