@@ -1,6 +1,8 @@
 provider "pcluster" {
-  endpoint = var.endpoint
-  role_arn = var.role_arn
+  endpoint       = var.endpoint
+  role_arn       = var.role_arn
+  use_user_role  = var.use_user_role
+  api_stack_name = var.api_stack_name
 }
 
 terraform {
