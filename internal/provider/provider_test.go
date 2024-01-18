@@ -34,16 +34,12 @@ func testAccPreCheck(t *testing.T) {
 	// about the appropriate environment variables being set are common to see in a pre-check
 	// function.
 
-	if _, ok := os.LookupEnv("TEST_REGION"); !ok {
-		t.Fatal(`
-      Environment 'TEST_REGION' is not set.
-      Set this environment variable to specify the aws region for the tests to run in.
-    `)
-	}
-	if _, ok := os.LookupEnv("TEST_CLUSTER_NAME"); !ok {
-		t.Fatal(`
-      Environment 'TEST_CLUSTER_NAME' is not set.
-      Set this environment variable to specify the name of the test cluster.
-    `)
+	if _, ok := os.LookupEnv("TEST_REGION"); ok {
+		if _, ok := os.LookupEnv("TEST_AVAILABILITY_ZONE"); !ok {
+			t.Fatal(`
+          Environment 'TEST_AVAILABILITY_ZONE' is not set.
+          IF TEST_REGION is set TEST_AVAILABILITY_ZONE must also be set.
+        `)
+		}
 	}
 }

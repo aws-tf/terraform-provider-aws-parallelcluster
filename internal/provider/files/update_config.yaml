@@ -1,4 +1,4 @@
-Region: us-west-2
+Region: us-east-1
 Image:
  Os: alinux2
 HeadNode:

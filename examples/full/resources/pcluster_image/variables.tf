@@ -23,5 +23,5 @@ variable "profile" {
 variable "region" {
   type        = string
   description = "The region to create the cluster in"
-  default     = "us-west-2"
+  default     = "us-east-1"
 }

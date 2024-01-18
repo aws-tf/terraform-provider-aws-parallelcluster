@@ -1,11 +1,25 @@
-resource "aws_subnet" "pcluster-test-subnet" {
-  vpc_id     = aws_vpc.pcluster-test-vpc.id
-  cidr_block = "10.0.111.0/24"
+/**
+ *  Copyright 2024 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License"). You may not
+ *  use this file except in compliance with the License. A copy of the License is
+ *  located at
+ *
+ *  http://aws.amazon.com/apache2.0/
+ *
+ *  or in the "LICENSE.txt" file accompanying this file. This file is distributed
+ *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, express or
+ *  implied. See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
+ *  # Required Infrastructure Submodule
+ *  The required infra submodule deploys a vpc, subnets, routes, gateways, and creates a
+ *  key pair. These are necessary resources for the API to deploy and manage clusters.
+ */
 
-  tags = {
-    Name = "pcluster-test-subnet"
-  }
-}
+##########################
+## VPCs ##################
+##########################
 
 resource "aws_default_vpc" "default" {
   tags = {
@@ -13,45 +27,121 @@ resource "aws_default_vpc" "default" {
   }
 }
 
-resource "aws_vpc" "pcluster-test-vpc" {
-  cidr_block       = "10.0.0.0/16"
+resource "aws_vpc" "vpc" {
+  cidr_block       = var.vpc_cidr_block // Default "10.0.0.0/16"
   instance_tenancy = "default"
 
   tags = {
-    Name = "pcluster-test-vpc"
+    Name = "${var.prefix}vpc"
   }
 }
 
-resource "aws_internet_gateway_attachment" "pcluster-test-inetenet-gateway-attachment" {
-  internet_gateway_id = aws_internet_gateway.pcluster-test-internet-gateway.id
-  vpc_id              = aws_vpc.pcluster-test-vpc.id
+
+##########################
+## SUBNETs ###############
+##########################
+
+resource "aws_subnet" "public" {
+  vpc_id                  = aws_vpc.vpc.id
+  count                   = length(var.public_subnet_cidrs)
+  cidr_block              = var.public_subnet_cidrs[count.index] // Default "10.0.111.0/24"
+  map_public_ip_on_launch = true
+  availability_zone       = var.public_subnet_az
+
+  tags = {
+    Name = "${var.prefix}public-${count.index}"
+  }
 }
 
-resource "aws_internet_gateway" "pcluster-test-internet-gateway" {}
+resource "aws_subnet" "private" {
+  vpc_id            = aws_vpc.vpc.id
+  count             = length(var.private_subnet_cidrs)
+  cidr_block        = var.private_subnet_cidrs[count.index] // Default "10.0.111.0/24"
+  availability_zone = var.private_subnet_az
 
-resource "aws_default_route_table" "pcluster-test-route-table" {
-  default_route_table_id = aws_vpc.pcluster-test-vpc.default_route_table_id
+  tags = {
+    Name = "${var.prefix}private-${count.index}"
+  }
+}
+
+
+##########################
+## GATEWAYs ##############
+##########################
+
+resource "aws_eip" "nat" {
+  domain = "vpc"
+}
+
+resource "aws_nat_gateway" "nat_gateway" {
+  allocation_id = aws_eip.nat.id
+  subnet_id     = aws_subnet.public[0].id
+  tags = {
+    Name = "${var.prefix}nat"
+  }
+}
+
+resource "aws_internet_gateway" "internet-gateway" {
+  vpc_id = aws_vpc.vpc.id
+  tags = {
+    Name = "${var.prefix}internet-gateway"
+  }
+}
+
+
+##########################
+## ROUTE TABLES ##########
+##########################
+
+resource "aws_route_table" "public" {
+  vpc_id = aws_vpc.vpc.id
 
   route {
     cidr_block = "0.0.0.0/0"
-    gateway_id = aws_internet_gateway.pcluster-test-internet-gateway.id
+    gateway_id = aws_internet_gateway.internet-gateway.id
   }
 
   tags = {
-    Name = "pcluster-test-route-table"
+    Name = "${var.prefix}public-route-table"
   }
 }
 
-resource "aws_key_pair" "pcluster-test-key-pair" {
+resource "aws_route_table" "private" {
+  vpc_id = aws_vpc.vpc.id
 
-  key_name_prefix = "pcluster"
-  public_key      = trimspace(tls_private_key.pcluster-test-private-key.public_key_openssh)
+  route {
+    cidr_block     = "0.0.0.0/0"
+    nat_gateway_id = aws_nat_gateway.nat_gateway.id
+  }
+
   tags = {
-    Name = "pcluster-test-key-pair"
+    Name = "${var.prefix}private-route-table"
   }
 }
 
-resource "tls_private_key" "pcluster-test-private-key" {
-  algorithm = "RSA"
-  rsa_bits  = 4096
+resource "aws_route_table_association" "public" {
+  count          = length(aws_subnet.public)
+  subnet_id      = aws_subnet.public[count.index].id
+  route_table_id = aws_route_table.public.id
+}
+
+resource "aws_route_table_association" "private" {
+  count          = length(aws_subnet.private)
+  subnet_id      = aws_subnet.private[count.index].id
+  route_table_id = aws_route_table.private.id
+}
+
+#####################
+## KEY PAIRs ########
+#####################
+
+resource "aws_key_pair" "key_pair" {
+  key_name_prefix = var.prefix
+  public_key      = trimspace(tls_private_key.key.public_key_openssh)
+
+  tags = {}
+}
+
+resource "tls_private_key" "key" {
+  algorithm = "ED25519"
 }
