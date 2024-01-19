@@ -265,7 +265,7 @@ func (p *PclusterProvider) Configure(
 		useUserRole = data.UseUserRole.ValueBool()
 		if useUserRole && !data.RoleArn.IsNull() {
 			resp.Diagnostics.AddError(
-				"use_user_role s true and role_arn is set.",
+				"use_user_role is true and role_arn is set.",
 				"Set use_user_role to true or set role_arn but not both.",
 			)
 			return
