@@ -14,3 +14,7 @@ tfplan
 terraform.tfstate
 terraform.tfstate.backup
 terraform.tfvars
+
+# Openapi Generator
+.travis.yml
+.openapi-generator

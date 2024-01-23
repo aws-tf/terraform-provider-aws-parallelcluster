@@ -14,7 +14,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"testing"
-	openapiclient "github.com/aws-tf/terraform-provider-aws-parallelcluster/internal/provider/openapi"
+	openapiclient "github.com/GIT_USER_ID/GIT_REPO_ID"
 )
 
 func Test_openapi_ClusterComputeFleetAPIService(t *testing.T) {
