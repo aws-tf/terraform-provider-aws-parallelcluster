@@ -38,7 +38,7 @@ const (
 )
 
 func TestEnd2EndCluster(t *testing.T) {
-	clusterName := "test_cluster"
+	clusterName := "test-cluster"
 
 	configVariables := config.Variables{
 		"cluster_name": config.StringVariable(clusterName),
