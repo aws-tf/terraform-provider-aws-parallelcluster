@@ -29,6 +29,8 @@ import (
 
 type imageTestConfig struct {
 	role         string
+	useUserRole  string
+	apiStackName string
 	imageId      string
 	parentImage  string
 	resourceName string
@@ -38,16 +40,43 @@ type imageTestConfig struct {
 
 func TestEnd2EndImage(t *testing.T) {
 	testConfig := &imageTestConfig{
-		role:         os.Getenv("TEST_ROLE"),
+		role:         "null",
+		useUserRole:  "false",
+		apiStackName: "null",
 		endpoint:     os.Getenv("TEST_ENDPOINT"),
 		imageId:      "pcluster-image-build-test-01",
-		parentImage:  "ami-0872c164f38dcc49f",
+		parentImage:  "ami-033a1ef04d047e1ca",
 		resourceName: "test",
-		region:       os.Getenv("TEST_REGION"),
+	}
+
+	if region, ok := os.LookupEnv("TEST_REGION"); ok {
+		testConfig.region = fmt.Sprintf("%q", region)
+	} else {
+		testConfig.region = fmt.Sprintf("%q", "us-east-1")
 	}
 
 	if name, ok := os.LookupEnv("TEST_IMAGE_NAME"); ok {
-		testConfig.imageId = name
+		testConfig.imageId = fmt.Sprintf("%q", name)
+	}
+
+	if endpoint, ok := os.LookupEnv("TEST_ENDPOINT"); ok {
+		testConfig.endpoint = fmt.Sprintf("%q", endpoint)
+	}
+
+	if role, ok := os.LookupEnv("TEST_ROLE"); ok {
+		testConfig.role = fmt.Sprintf("%q", role)
+	}
+
+	if _, ok := os.LookupEnv("TEST_USE_USER_ROLE"); ok {
+		testConfig.useUserRole = "true"
+	}
+
+	if name, ok := os.LookupEnv("TEST_PCAPI_STACK_NAME"); ok {
+		testConfig.apiStackName = fmt.Sprintf("%q", name)
+	}
+
+	if parentImage, ok := os.LookupEnv("TEST_PARENT_IMAGE"); ok {
+		testConfig.parentImage = parentImage
 	}
 
 	t.Parallel()
@@ -141,12 +170,14 @@ func (c *imageTestConfig) testAccProviderConfig() string {
 	}
 	return fmt.Sprintf(`
 provider "pcluster" {
-  role_arn = %q
+  role_arn = %v
+  use_user_role = %v
+  api_stack_name = %v
   endpoint = %v
-  region   = %q
+  region   = %v
 }
 
-`, c.role, endpoint, c.region)
+`, c.role, c.useUserRole, c.apiStackName, endpoint, c.region)
 }
 
 func (c *imageTestConfig) testAccImageListDataSourceConfig() string {

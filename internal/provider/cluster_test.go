@@ -38,26 +38,50 @@ const (
 )
 
 func TestEnd2EndCluster(t *testing.T) {
-	clusterName := os.Getenv("TEST_CLUSTER_NAME")
-	region := os.Getenv("TEST_REGION")
-	os.Setenv("AWS_REGION", region)
+	clusterName := "test_cluster"
 
 	configVariables := config.Variables{
 		"cluster_name": config.StringVariable(clusterName),
-		"region":       config.StringVariable(region),
 		"max_nodes":    config.StringVariable("2"),
-		"role_arn":     config.StringVariable(os.Getenv("TEST_ROLE")),
 	}
 	configUpdateVariables := config.Variables{
 		"cluster_name": config.StringVariable(clusterName),
-		"region":       config.StringVariable(region),
 		"max_nodes":    config.StringVariable("3"),
-		"role_arn":     config.StringVariable(os.Getenv("TEST_ROLE")),
+	}
+
+	if region, ok := os.LookupEnv("TEST_REGION"); ok {
+		os.Setenv("AWS_REGION", region)
+		configVariables["region"] = config.StringVariable(region)
+		configUpdateVariables["region"] = config.StringVariable(region)
+	} else {
+		os.Setenv("AWS_REGION", "us-east-1")
+		configVariables["region"] = config.StringVariable("us-east-1")
+		configUpdateVariables["region"] = config.StringVariable("us-east-1")
 	}
 
 	if endpoint, ok := os.LookupEnv("TEST_ENDPOINT"); ok {
 		configVariables["endpoint"] = config.StringVariable(endpoint)
 		configUpdateVariables["endpoint"] = config.StringVariable(endpoint)
+	}
+
+	if role, ok := os.LookupEnv("TEST_ROLE"); ok {
+		configVariables["role_arn"] = config.StringVariable(role)
+		configUpdateVariables["role_arn"] = config.StringVariable(role)
+	}
+
+	if _, ok := os.LookupEnv("TEST_USE_USER_ROLE"); ok {
+		configVariables["use_user_role"] = config.BoolVariable(true)
+		configUpdateVariables["use_user_role"] = config.BoolVariable(true)
+	}
+
+	if name, ok := os.LookupEnv("TEST_PCAPI_STACK_NAME"); ok {
+		configVariables["api_stack_name"] = config.StringVariable(name)
+		configUpdateVariables["api_stack_name"] = config.StringVariable(name)
+	}
+
+	if name, ok := os.LookupEnv("TEST_CLUSTER_NAME"); ok {
+		configVariables["cluster_name"] = config.StringVariable(name)
+		configUpdateVariables["cluster_name"] = config.StringVariable(name)
 	}
 
 	t.Parallel()

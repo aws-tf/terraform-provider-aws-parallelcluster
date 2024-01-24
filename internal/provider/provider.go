@@ -22,6 +22,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/apigateway"
+	"github.com/aws/aws-sdk-go-v2/service/cloudformation"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/provider"
@@ -34,8 +35,10 @@ import (
 
 // Ensure ScaffoldingProvider satisfies various provider interfaces.
 var (
-	_       provider.Provider = &PclusterProvider{}
-	apiName                   = "ParallelCluster"
+	_                        provider.Provider = &PclusterProvider{}
+	apiName                                    = "ParallelCluster"
+	apiStackInvokeUrlKeyName                   = "ParallelClusterApiInvokeUrl"
+	apiStackUserRoleKeyName                    = "ParallelClusterApiUserRole"
 )
 
 type configData struct {
@@ -55,13 +58,15 @@ type PclusterProvider struct {
 
 // PclusterProviderModel describes the provider data model.
 type PclusterProviderModel struct {
-	Endpoint  types.String `tfsdk:"endpoint"`
-	RoleArn   types.String `tfsdk:"role_arn"`
-	Region    types.String `tfsdk:"region"`
-	Profile   types.String `tfsdk:"profile"`
-	AwsKey    types.String `tfsdk:"aws_key"`
-	AwsSecret types.String `tfsdk:"aws_secret"`
-	ApiName   types.String `tfsdk:"api_name"`
+	Endpoint    types.String `tfsdk:"endpoint"`
+	StackName   types.String `tfsdk:"api_stack_name"`
+	UseUserRole types.Bool   `tfsdk:"use_user_role"`
+	RoleArn     types.String `tfsdk:"role_arn"`
+	Region      types.String `tfsdk:"region"`
+	Profile     types.String `tfsdk:"profile"`
+	AwsKey      types.String `tfsdk:"aws_key"`
+	AwsSecret   types.String `tfsdk:"aws_secret"`
+	ApiName     types.String `tfsdk:"api_name"`
 }
 
 func (p *PclusterProvider) Metadata(
@@ -87,6 +92,14 @@ With AWS ParallelCluster, you can quickly build and deploy proof of concept and 
 		Attributes: map[string]schema.Attribute{
 			"endpoint": schema.StringAttribute{
 				MarkdownDescription: "The endpoint of the ParallelCluster API. If unset will be autodetected.",
+				Optional:            true,
+			},
+			"api_stack_name": schema.StringAttribute{
+				MarkdownDescription: "The ParallelCluster cloudformation stack arn containing the endpoint and role outputs.",
+				Optional:            true,
+			},
+			"use_user_role": schema.BoolAttribute{
+				MarkdownDescription: "Whether or not to use the user role exported by the ParallelCluster cloudformation stack. Either set this to true, supply a `role_arn` or set neither.",
 				Optional:            true,
 			},
 			"role_arn": schema.StringAttribute{
@@ -118,7 +131,36 @@ With AWS ParallelCluster, you can quickly build and deploy proof of concept and 
 	}
 }
 
-func GetClusterApiUrl(cfg aws.Config, name string) (string, error) {
+func GetApiUrlAndRoleFromCfStack(cfg aws.Config, name string) (string, string, error) {
+	var url string
+	var role string
+
+	svc := cloudformation.NewFromConfig(cfg)
+
+	stackDesc, err := svc.DescribeStacks(
+		context.TODO(),
+		&cloudformation.DescribeStacksInput{StackName: &name},
+	)
+	if err != nil {
+		return url, role, err
+	}
+	for _, output := range stackDesc.Stacks[0].Outputs {
+		if *output.OutputKey == apiStackInvokeUrlKeyName {
+			url = *output.OutputValue
+		}
+		if *output.OutputKey == apiStackUserRoleKeyName {
+			role = *output.OutputValue
+		}
+	}
+
+	if len(url) == 0 {
+		return url, role, fmt.Errorf("API endpoint not found.")
+	}
+
+	return url, role, nil
+}
+
+func GetClusterApiUrlFromGateway(cfg aws.Config, name string) (string, error) {
 	var url string
 
 	svc := apigateway.NewFromConfig(cfg)
@@ -216,6 +258,19 @@ func (p *PclusterProvider) Configure(
 	configuration := openapi.NewConfiguration()
 
 	url := data.Endpoint.ValueString()
+	useUserRole := false
+	sdata.role = ""
+
+	if !data.UseUserRole.IsNull() {
+		useUserRole = data.UseUserRole.ValueBool()
+		if useUserRole && !data.RoleArn.IsNull() {
+			resp.Diagnostics.AddError(
+				"use_user_role is true and role_arn is set.",
+				"Set use_user_role to true or set role_arn but not both.",
+			)
+			return
+		}
+	}
 
 	if !data.Profile.IsNull() {
 		os.Setenv("AWS_PROFILE", data.Profile.ValueString())
@@ -251,8 +306,39 @@ func (p *PclusterProvider) Configure(
 		apiName = data.ApiName.ValueString()
 	}
 
-	if data.Endpoint.IsNull() {
-		apiUrl, err := GetClusterApiUrl(cfg, apiName)
+	if stackSet := !data.StackName.IsNull(); stackSet || useUserRole {
+		name := apiName
+
+		if stackSet {
+			name = data.StackName.ValueString()
+		}
+
+		apiUrl, userRole, err := GetApiUrlAndRoleFromCfStack(cfg, name)
+		if err != nil {
+			resp.Diagnostics.AddError(
+				"Unable to retrieve ParallelCluster API cloudformation stack.",
+				fmt.Sprintf("%v", err),
+			)
+			return
+		}
+
+		if data.Endpoint.IsNull() {
+			url = apiUrl
+		}
+
+		if useUserRole {
+			if len(userRole) == 0 {
+				resp.Diagnostics.AddError(
+					"Unable to retrieve ParallelCluster API user role from cloudformation stack.",
+					fmt.Sprintf("%v", err),
+				)
+				return
+			}
+			sdata.role = userRole
+		}
+
+	} else if data.Endpoint.IsNull() {
+		apiUrl, err := GetClusterApiUrlFromGateway(cfg, apiName)
 		if err != nil {
 			resp.Diagnostics.AddError(
 				"Unable to retrieve ParallelCluster endpoint url.",
@@ -262,6 +348,7 @@ func (p *PclusterProvider) Configure(
 		}
 		url = apiUrl
 	}
+
 	configuration.Servers = openapi.ServerConfigurations{
 		{
 			URL:         url,
@@ -270,9 +357,7 @@ func (p *PclusterProvider) Configure(
 	}
 	sdata.client = openapi.NewAPIClient(configuration)
 
-	if data.RoleArn.IsNull() {
-		sdata.role = ""
-	} else {
+	if !data.RoleArn.IsNull() {
 		sdata.role = data.RoleArn.ValueString()
 	}
 
