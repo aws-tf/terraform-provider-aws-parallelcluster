@@ -28,7 +28,3 @@ output "cluster_compute_fleet_resource" {
 output "cluster_data_source" {
   value = data.pcluster_cluster.test
 }
-
-output "cluster_list_data_source" {
-  value = data.pcluster_list_clusters.test
-}
