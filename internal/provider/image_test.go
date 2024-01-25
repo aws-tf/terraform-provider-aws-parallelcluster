@@ -92,7 +92,7 @@ func TestEnd2EndImage(t *testing.T) {
 		Steps: []resource.TestStep{
 			// Create and Read testing
 			{
-				Config: testConfig.testAccImageResourceConfig(),
+				Config: testConfig.imageResourceConfig(),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrPair(
 						"pcluster_image."+testConfig.resourceName,
@@ -119,7 +119,7 @@ func TestEnd2EndImage(t *testing.T) {
 			},
 			// Image Data Source Test
 			{
-				Config: testConfig.testAccImageDataSourceConfig(),
+				Config: testConfig.imageDataSourceConfig(),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(
 						"data.pcluster_image."+testConfig.resourceName,
@@ -149,7 +149,7 @@ func TestEnd2EndImage(t *testing.T) {
 			},
 			// Image List Data Source Test
 			{
-				Config: testConfig.testAccImageListDataSourceConfig(),
+				Config: testConfig.imageListDataSourceConfig(),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet(
 						"data.pcluster_list_images."+testConfig.resourceName,
@@ -161,7 +161,7 @@ func TestEnd2EndImage(t *testing.T) {
 	})
 }
 
-func (c *imageTestConfig) testAccProviderConfig() string {
+func (c *imageTestConfig) providerConfig() string {
 	var endpoint string
 	if c.endpoint == "" {
 		endpoint = "null"
@@ -180,19 +180,19 @@ provider "pcluster" {
 `, c.role, c.useUserRole, c.apiStackName, endpoint, c.region)
 }
 
-func (c *imageTestConfig) testAccImageListDataSourceConfig() string {
+func (c *imageTestConfig) imageListDataSourceConfig() string {
 	dataSource := fmt.Sprintf(`
 data "pcluster_list_images" "%v" {
   image_status = "AVAILABLE"
-  region = "%v"
+  region = %v
 }
 
 `, c.resourceName, c.region)
 
-	return dataSource + c.testAccImageResourceConfig()
+	return dataSource + c.imageResourceConfig()
 }
 
-func (c *imageTestConfig) testAccImageDataSourceConfig() string {
+func (c *imageTestConfig) imageDataSourceConfig() string {
 	dataSource := fmt.Sprintf(`
 data "pcluster_image" "%v" {
   image_id = "%v"
@@ -200,11 +200,11 @@ data "pcluster_image" "%v" {
 
 `, c.resourceName, c.imageId)
 
-	return dataSource + c.testAccImageResourceConfig()
+	return dataSource + c.imageResourceConfig()
 }
 
-func (c *imageTestConfig) testAccImageResourceConfig() string {
-	return c.testAccProviderConfig() + fmt.Sprintf(`
+func (c *imageTestConfig) imageResourceConfig() string {
+	return c.providerConfig() + fmt.Sprintf(`
 resource "aws_default_vpc" "default" {
   tags = {
     Name = "Default VPC"
