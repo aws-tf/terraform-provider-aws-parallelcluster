@@ -11,7 +11,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sts v1.26.7
 	github.com/hashicorp/terraform-plugin-docs v0.17.0
 	github.com/hashicorp/terraform-plugin-framework v1.5.0
-	github.com/hashicorp/terraform-plugin-go v0.20.0
+	github.com/hashicorp/terraform-plugin-go v0.21.0
 	github.com/hashicorp/terraform-plugin-log v0.9.0
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.31.0
 	github.com/hashicorp/terraform-plugin-testing v1.6.0
