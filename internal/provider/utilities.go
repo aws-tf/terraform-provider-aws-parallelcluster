@@ -3,6 +3,7 @@ package provider
 import (
 	"context"
 
+	openapi "github.com/aws-tf/terraform-provider-aws-parallelcluster/internal/provider/openapi"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 )
 
@@ -26,4 +27,13 @@ func (f *AttributeValidator) ValidateString(
 	resp *validator.StringResponse,
 ) {
 	f.validatorFunction(ctx, req, resp)
+}
+
+func awsv4Test() openapi.AWSv4 {
+	return openapi.AWSv4{
+		AccessKey:    "testKey",
+		SecretKey:    "testSecret",
+		SessionToken: "testToken",
+		Service:      "testService",
+	}
 }
