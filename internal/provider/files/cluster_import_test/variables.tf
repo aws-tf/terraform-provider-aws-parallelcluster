@@ -35,12 +35,12 @@ variable "endpoint" {
 
 variable "use_user_role" {
   type        = bool
-  description = "If set to true retrieve the user role exported from the ParallelCluster cloudformation stack."
+  description = "If set to true retrieve the user role exported from the ParallelCluster CloudFormation stack."
   default     = null
 }
 
 variable "api_stack_name" {
   type        = string
-  description = "Retrieve the api stack endpoint from the given cloudformation stack name."
+  description = "Retrieve the api stack endpoint from the given CloudFormation stack name."
   default     = null
 }
