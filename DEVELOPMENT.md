@@ -2,7 +2,7 @@
 
 ## Requirements
 * go 1.21.5+: https://go.dev/
-* terraform 1.6.6+: https://developer.hashicorp.com/terraform/install?product_intent=terraform
+* Terraform 1.8.0+: https://developer.hashicorp.com/Terraform/install?product_intent=Terraform
 * pre-commit 3.6.0+: https://pre-commit.com/
 * git-secrets 1.3.0+: https://github.com/awslabs/git-secrets
 
@@ -16,23 +16,86 @@ git secrets --register-aws
 
 ## Developing the Provider
 
-`./internal/provider/openapi` contains a generated parallelcluster go client. It can be generated with:
+`./internal/provider/openapi` contains a generated ParallelCluster go client. It should be regenerated with new releases of ParallelCluster. It can be generated with:
 
 ```shell
 openapi-generator-cli generate -g go -i path-to-openapi-pcluster-spec -o internal/provider/openapi -p 'structPrefix=true,withAWSV4Signature=true,enumClassPrefix=true'
 ```
 
-## Documentation
-To generate or update documentation, run `go generate`.
+The pcluster spec file can be retrieved from https://github.com/aws/aws-ParallelCluster/tree/develop/api/spec/openapi.
 
+See https://openapi-generator.tech/docs/installation/ for openapi generator installation instructions.
+
+After the go client is regenerated unit and End-to-End tests should be run (See below). 
+
+### Building
+
+`make build` will build the provider for windows, macOS, and linux. An arm version will also be built for macOS. Binaries will be placed in the `./build` folder. See below for specific make targets.
+
+- `darwin_arm64` Arm version for macOS.
+- `darwin_amd64` x86_64 version for macOS.
+- `windows_amd64`x86_64 version for windows.
+- `linux_amd64` x86_64 version for linux.
+
+### Installing
+
+The provider can be installed locally for testing with the `install` target. The `VERSION` environment is used to determine the install path. To increment the version for local installs you could use the following:
+
+`make install VERSION=3.9.0-2`
+
+In order to use the local provider, a configuration block like the following may be used.
+
+```Terraform
+terraform {
+  required_providers {
+    pcluster = {
+      source  = "Terraform.local/local/pcluster"
+      version = "~> 3.9.0-1"
+    }
+  }
+}
+```
+
+## Documentation
+To generate or update documentation, run `go generate`. Documentation will be generated with Terraform-plugin-docs.
+
+Terraform-plugin-docs will perform the following actions:
+
+* Copy all the templates and static files to a temporary directory
+* Build (`go build`) a temporary binary of the provider source code
+* Collect schema information using `Terraform providers schema -json`
+* Generate a default provider template file, if missing (**index.md**)
+* Generate resource template files, if missing
+* Generate data source template files, if missing
+* Generate function template files, if missing (Requires Terraform v1.8.0+)
+* Copy all non-template files to the output website directory
+* Process all the remaining templates to generate files for the output website directory
+
+Notable directories are in the `examples` folder. Examples in the documentation will be taken from the `examples/resources`, `examples/data-sources`, and `examples/provider` folders.
+
+See https://github.com/hashicorp/Terraform-plugin-docs for more information.
 
 ## Testing
-`TEST_REGION` and the `TEST_CLUSTER_NAME` environment variables must be set (ie. `export TEST_REGION=us-east-1 TEST_CLUSTER_NAME=test-cluster`).
 
-In order to run the full suite of Acceptance tests,  Run `make testacc`.
+Running `make test` is sufficient to run unit tests and end-to-end tests using the default aws profile in us-east-1. The following environment variables can customize the end-to-end tests.
 
-In order to run unit tests, run `make testunit`.
+- `TEST_REGION` The region used for deploying resources and query data sources. Defaults to "us-east-1". 
+- `TEST_ENDPOINT` The endpoint of the ParallelCluster API. If unset will be autodetected.
+- `TEST_ROLE` The role used for deploying resources and query data sources. If unset the users default role will be used.
+- `TEST_USE_USER_ROLE` Whether or not to use the user role exported by the ParallelCluster cloudformation stack. Either set this to true, supply a `role_arn` or set neither. If unset the default role will be used.
+- `TEST_PCAPI_STACK_NAME` The ParallelCluster cloudformation stack name containing the endpoint and role outputs. If unset the API called "ParallelCluster" will be used.
+- `TEST_CLUSTER_NAME` The name to use for the ParallelCluster created during end-to-end tests. Defaults to "test-cluster".
 
-To run acceptance tests and unit tests, run `make test`.
+AWS configuration environment variables can be used as well. Such as `AWS_PROFILE`, `AWS_DEFAULT_PROFILE`, `AWS_SECRET_ACCESS_KEY`, `AWS_ACCESS_KEY_ID`.
 
-*Note:* Acceptance tests create real resources, and often cost money to run.
+The sdk test framework also has configuration variables. These control some of the behavior of End-to-End tests (called acceptance tests in the documentation) including Terraform configuration and log output. See https://developer.hashicorp.com/Terraform/plugin/sdkv2/testing/acceptance-tests#environment-variables for more information.
+
+In order to run the full suite of End-to-End tests,  Run `make test_end2end`.
+
+In order to run unit tests, run `make test_unit`.
+
+To run end-to-end tests and unit tests, run `make test`.
+
+*Note:* End-to-end tests create real resources, and often cost money to run.
+
+Additional information: https://developer.hashicorp.com/Terraform/plugin/sdkv2/testing 
