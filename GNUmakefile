@@ -1,7 +1,7 @@
 default: build
 
 ifndef VERSION 
-	VERSION = 3.9.0-1
+VERSION = 3.9.0-1
 endif
 
 install_path = ~/.terraform.d/plugins/terraform.local/local/pcluster/$(VERSION)
