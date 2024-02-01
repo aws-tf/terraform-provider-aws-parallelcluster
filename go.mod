@@ -7,7 +7,7 @@ require (
 	github.com/aws/aws-sdk-go-v2 v1.24.1
 	github.com/aws/aws-sdk-go-v2/config v1.26.6
 	github.com/aws/aws-sdk-go-v2/service/apigateway v1.21.7
-	github.com/aws/aws-sdk-go-v2/service/cloudformation v1.42.6
+	github.com/aws/aws-sdk-go-v2/service/cloudformation v1.43.0
 	github.com/aws/aws-sdk-go-v2/service/sts v1.26.7
 	github.com/hashicorp/terraform-plugin-docs v0.17.0
 	github.com/hashicorp/terraform-plugin-framework v1.5.0
