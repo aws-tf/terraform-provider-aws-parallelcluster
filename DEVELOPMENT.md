@@ -56,6 +56,8 @@ terraform {
 }
 ```
 
+The hyphen in the version denotes a prerelease and will not be picked up by the version filter unless explicitly defined. 
+
 ## Documentation
 To generate or update documentation, run `go generate`. Documentation will be generated with Terraform-plugin-docs.
 
@@ -99,3 +101,28 @@ To run end-to-end tests and unit tests, run `make test`.
 *Note:* End-to-end tests create real resources, and often cost money to run.
 
 Additional information: https://developer.hashicorp.com/Terraform/plugin/sdkv2/testing 
+
+## Releasing
+
+Releases are created using `goreleaser`. A github action exists at `./github/workflows/release.yml` that will create a new release when new tags are pushed to the repo. Tags must match the following filter: `v*`.
+
+The goreleaser configuration exists at `.goreleaser.yml`. The configuration is copied from the official terraform scaffholding.
+
+For more information see: 
+
+https://github.com/hashicorp/terraform-provider-scaffolding-framework/blob/main/.goreleaser.yml
+https://goreleaser.com/intro/ 
+
+This Github workflow expects the following secrets:
+- `GPG_SECRET_KEY` This secret GPG should be exported with the `--armor` flag and will need to match the public key pushed to the terraform registry (see below)
+- `PASSPHRASE` The passphrase of the secret GPG key
+
+NOTE: A version is of the form `v3.9.0`, if a `-` delimiter exists (ie. `v3.9.0-1`) terraform will consider it a prerelease and will not upgrade to it unless its explicitly defined in the configuration. 
+
+See https://developer.hashicorp.com/terraform/registry/providers/publishing#creating-a-github-release for more information. 
+
+## Publishing to the terraform registry
+
+Releases are published automatically when a new release is created. This is done with a webhook that is created during the setup processes on the terraform registry. The public gpg key used during setup should match the private key used for releases. Otherwise terraform will throw signature errors during init.
+
+See https://developer.hashicorp.com/terraform/registry/providers/publishing#publishing-to-the-registry for more information.
