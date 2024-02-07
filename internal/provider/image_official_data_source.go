@@ -49,11 +49,6 @@ type OfficialImageDataSourceModel struct {
 	OfficialImages types.List   `tfsdk:"official_images"`
 }
 
-type architectureValidator struct {
-	description         string
-	markdownDescription string
-}
-
 func (d *OfficialImageDataSource) Metadata(
 	ctx context.Context,
 	req datasource.MetadataRequest,

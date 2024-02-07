@@ -285,7 +285,10 @@ func TestUnitWaitImageReady(t *testing.T) {
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(clusterJson))
+		_, err := w.Write([]byte(clusterJson))
+		if err != nil {
+			t.Fatalf("Failed to mock http request %v", err)
+		}
 	}))
 
 	defer server.Close()

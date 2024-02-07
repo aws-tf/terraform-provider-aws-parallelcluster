@@ -191,6 +191,7 @@ func populateClusterDataSource(
 	delete(clusterMap, "loginNodes")
 
 	tfClusterMap, diags := types.MapValueFrom(ctx, types.StringType, clusterMap)
+	resp.Diagnostics.Append(diags...)
 	tfClusterMapElements := tfClusterMap.Elements()
 
 	if creationTime, ok := cluster.GetCreationTimeOk(); ok {
@@ -208,6 +209,10 @@ func populateClusterDataSource(
 	if headNode, ok := cluster.GetHeadNodeOk(); ok {
 		headNodeMap, err := headNode.ToMap()
 		if err != nil {
+			resp.Diagnostics.AddError(
+				"Error occured while retrieving headnode",
+				fmt.Sprintf("Error: %v", err),
+			)
 		}
 
 		headNodeMap["launchTime"] = headNode.GetLaunchTime().String()

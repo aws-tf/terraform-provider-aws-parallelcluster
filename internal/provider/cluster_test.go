@@ -233,7 +233,10 @@ func mockHttpServer(configPath string, config string, t *testing.T) *httptest.Se
 			t.Errorf("Expected to request '%s', got: %s", configPath, r.URL.Path)
 		}
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(config))
+    _, err := w.Write([]byte(config))
+		if err != nil {
+			t.Fatalf("Failed to mock http request %v", err)
+		}
 	}))
 
 	return server
@@ -308,7 +311,10 @@ func TestUnitWaitClusterReady(t *testing.T) {
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(clusterJson))
+		_, err := w.Write([]byte(clusterJson))
+		if err != nil {
+			t.Fatalf("Failed to mock http request %v", err)
+		}
 	}))
 
 	defer server.Close()
@@ -450,7 +456,10 @@ func TestUnitGetCluster(t *testing.T) {
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(clusterJson))
+    _, err := w.Write([]byte(clusterJson))
+    if err != nil {
+            t.Fatalf("Failed to mock http request %v", err)
+    }
 	}))
 	defer server.Close()
 	cR := ClusterResource{}
@@ -552,6 +561,9 @@ func TestUnitPopulateClusterDataDesc(t *testing.T) {
 			"loginNodes":         types.ObjectNull(loginNodesObjectTypes),
 		},
 	)
+  if err != nil {
+          t.Fatalf("Failed to create cluster object %v", err)
+  }
 
 	clusterObject, err := types.ObjectValue(clusterDescriptionObjectTypes, map[string]attr.Value{
 		"version": types.StringValue(contents[0].Version),
