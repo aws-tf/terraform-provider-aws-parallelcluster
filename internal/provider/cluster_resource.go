@@ -617,6 +617,7 @@ func (r *ClusterResource) ImportState(
 	reqCtx := context.WithValue(context.Background(), openapi.ContextAWSv4, r.awsv4)
 
 	clusterDesc, err := r.getCluster(reqCtx, req.ID)
+
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to find cluster.", err.Error())
 		return
