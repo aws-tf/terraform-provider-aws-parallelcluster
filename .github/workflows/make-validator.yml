@@ -1,0 +1,61 @@
+name: make-validator 
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+permissions:
+  contents: read
+env: 
+  BUILDS: darwin_amd64 darwin_arm64 linux_amd64 windows_amd64
+  VERSION: 0.0.0-MakeValidator
+  INSTALL_PATH: .terraform.d/plugins/terraform.local/local/pcluster
+  BINARY_PREFIX: terraform-provider-pcluster
+jobs:
+  make:
+    name: make
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: 'go.mod'
+          cache: true 
+      - run: make build
+      - name: Post build check
+        run: |
+          for BUILD in $(echo ${BUILDS}); do
+            if [ ! -f build/${BUILD} ]; then
+              echo "Make build failed: ${BUILD} binary does not exist."
+              exit 1
+            fi
+          done
+      - run: make install
+      - name: Post install check
+        run: |
+          for BUILD in $(echo ${BUILDS}); do
+            BINARY_PATH=~/${INSTALL_PATH}/${VERSION}/${BUILD}/${BINARY_PREFIX}_${VERSION}
+            if [ ! -f "${BINARY_PATH}" ]; then
+              echo "Make install failed: ${BINARY_PATH} binary does not exist."
+              exit 1
+            fi
+          done
+      - run: make clean
+      - name: Post clean check
+        run: |
+          for BUILD in $(echo ${BUILDS}); do
+            if [ -f build/${BUILD} ]; then
+              echo "Make clean failed: ${BUILD} binary still exists."
+              exit 1
+            fi
+          done
+      - run: make uninstall
+      - name: Post uninstall check
+        run: |
+          for BUILD in $(echo ${BUILDS}); do
+            BINARY_PATH=~/${INSTALL_PATH}/${VERSION}/${BUILD}/${BINARY_PREFIX}_${VERSION}
+            if [ -f "${BINARY_PATH}" ]; then
+              echo "Make uninstall failed: ${BINARY_PATH} binary still exists."
+              exit 1
+            fi
+          done
