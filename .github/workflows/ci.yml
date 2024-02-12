@@ -32,6 +32,7 @@ jobs:
     env:
       COVERAGE_PATH: cover.out
       PREV_COVERAGE_PATH: min_coverage/cover.out
+      TF_EXAMPLES_PATH: examples
       # This is not currently exposed.
       # See: https://github.com/orgs/community/discussions/10052
       # See: https://github.com/actions/runner/issues/853
@@ -50,6 +51,7 @@ jobs:
             go: 1.20.1
             terraform: 1.5.7
     steps:
+        # Setup 
       - uses: actions/checkout@v4
       - name: Setup Go
         uses: actions/setup-go@v4
@@ -60,11 +62,16 @@ jobs:
         with:
           terraform_version: ${{ matrix.terraform }}
           terraform_wrapper: false
+
+        # Tests 
+      - name: Check terraform examples for proper formatting
+        run: terraform fmt -recursive -check ${TF_EXAMPLES_PATH}
       - run: go mod download
       - name: Run Unit Tests
-        run: go test ./... -v -run="^TestUnit" -cover -coverprofile=${{env.COVERAGE_PATH}}
+        run: go test ./... -v -run="^TestUnit" -cover -coverprofile=${COVERAGE_PATH}
         timeout-minutes: 10
-        # Find and Pull the archived cover report of the last run.
+
+        # Find and Pull the archived cover report of the last run
       - name: Retrieve Previous Succesful Run ID
         id: prev-run-id
         continue-on-error: true
@@ -93,6 +100,7 @@ jobs:
           path: min_coverage
           github-token: ${{ secrets.GITHUB_TOKEN }}
           run-id: ${{ steps.prev-run-id.outputs.result }}
+
         # Verify that coverage did not decrease from last run.
       - name: Check for minimum coverage
         if: steps.download-coverage.outcome == 'success'
@@ -111,6 +119,7 @@ jobs:
             echo "ERROR: Coverage fell below previous run."
             exit 1
           fi
+
         # Archive the cover report of the current test run.
       - name: Archive coverage results
         uses: actions/upload-artifact@v4
