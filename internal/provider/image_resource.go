@@ -572,14 +572,14 @@ func (r *ImageResource) ImportState(
 	var data ImageResourceModel
 	reqCtx := context.WithValue(context.Background(), openapi.ContextAWSv4, r.awsv4)
 
-	data.Id = data.ImageId
-	imageSummary, err := r.getImage(reqCtx, data.ImageId.ValueString())
-	if err != nil && err.Error() != failedToFindImageErr {
+	imageSummary, err := r.getImage(reqCtx, req.ID)
+	if err != nil && err.Error() == failedToFindImageErr {
 		resp.Diagnostics.AddError("Failed to find image.", err.Error())
 	}
 
 	if id, ok := imageSummary.GetImageIdOk(); ok {
 		data.ImageId = types.StringValue(*id)
+		data.Id = data.ImageId
 	}
 	if region, ok := imageSummary.GetRegionOk(); ok {
 		data.Region = types.StringValue(*region)
