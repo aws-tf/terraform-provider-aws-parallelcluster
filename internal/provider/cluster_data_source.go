@@ -168,13 +168,6 @@ func (d *ClusterDataSource) Configure(
 	d.awsv4 = client.awsv4
 }
 
-func populateScheduler(
-	scheduler *openapi.Scheduler,
-	data *ClusterDataSourceModel,
-	resp *datasource.ReadResponse,
-) {
-}
-
 func populateClusterDataSource(
 	cluster *openapi.DescribeClusterResponseContent,
 	data *ClusterDataSourceModel,

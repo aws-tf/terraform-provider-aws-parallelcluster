@@ -14,11 +14,16 @@
 package provider
 
 import (
+	"context"
 	"os"
+	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-framework/providerserver"
 	"github.com/hashicorp/terraform-plugin-go/tfprotov6"
+
+	"github.com/hashicorp/terraform-plugin-framework/provider"
 )
 
 // testAccProtoV6ProviderFactories are used to instantiate a provider during
@@ -42,4 +47,73 @@ func testAccPreCheck(t *testing.T) {
         `)
 		}
 	}
+}
+
+func TestUnitNewPclusterProvider(t *testing.T) {
+	t.Parallel()
+
+	obj := New("test")()
+	if _, ok := obj.(*PclusterProvider); !ok {
+		t.Fatalf(
+			"Error matching output and expected. \nO: %#v\nE: PclusterProvider",
+			reflect.TypeOf(obj),
+		)
+	}
+}
+
+func TestUnitPclusterProviderMetadata(t *testing.T) {
+	d := New("test")()
+	p := PclusterProvider{}
+	resp := provider.MetadataResponse{}
+	req := provider.MetadataRequest{}
+	providerResp := provider.MetadataResponse{}
+	providerReq := provider.MetadataRequest{}
+
+	p.Metadata(context.TODO(), providerReq, &providerResp)
+
+	d.Metadata(context.TODO(), req, &resp)
+
+	if !strings.HasPrefix(resp.TypeName, providerResp.TypeName) {
+		t.Fatalf(
+			"Error provider typename expected as the prefix for provider or provider name. \nO: %#v\nE: %#v",
+			resp.TypeName,
+			providerResp.TypeName,
+		)
+	}
+}
+
+func TestUnitPclusterProviderSchema(t *testing.T) {
+	d := PclusterProvider{}
+	dataSourceModel := PclusterProviderModel{}
+	resp := provider.SchemaResponse{}
+	req := provider.SchemaRequest{}
+
+	d.Schema(context.TODO(), req, &resp)
+
+	rProvider := reflect.TypeOf(dataSourceModel)
+	numFields := rProvider.NumField()
+	numAttributes := len(resp.Schema.Attributes)
+
+	for i := 0; i < numFields; i++ {
+		tag := rProvider.Field(i).Tag
+		if _, ok := resp.Schema.Attributes[tag.Get("tfsdk")]; !ok {
+			t.Fatalf(
+				"Error expected attribute missing in schema. O: %#v\nE: %#v",
+				resp.Schema.Attributes,
+				tag,
+			)
+		}
+	}
+
+	if numAttributes != numFields {
+		t.Fatalf(
+			"Error extra attributes defined in schema. O: %#v E: %#v",
+			numFields,
+			numAttributes,
+		)
+	}
+}
+
+func TestUnitPclusterProviderConfigure(t *testing.T) {
+	t.Skip()
 }
