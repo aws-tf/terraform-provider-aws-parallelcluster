@@ -32,10 +32,10 @@ type imageTestConfig struct {
 	useUserRole  string
 	apiStackName string
 	imageId      string
-	parentImage  string
 	resourceName string
 	endpoint     string
 	region       string
+	az           string
 }
 
 func TestEnd2EndImage(t *testing.T) {
@@ -43,20 +43,28 @@ func TestEnd2EndImage(t *testing.T) {
 		role:         "null",
 		useUserRole:  "false",
 		apiStackName: "null",
-		endpoint:     os.Getenv("TEST_ENDPOINT"),
-		imageId:      "pcluster-image-build-test-01",
-		parentImage:  "ami-033a1ef04d047e1ca",
+		endpoint:     "null",
 		resourceName: "test",
 	}
 
 	if region, ok := os.LookupEnv("TEST_REGION"); ok {
-		testConfig.region = fmt.Sprintf("%q", region)
+		os.Setenv("AWS_REGION", region)
+		testConfig.region = region
 	} else {
-		testConfig.region = fmt.Sprintf("%q", "us-east-1")
+		os.Setenv("AWS_REGION", defaultRegion)
+		testConfig.region = defaultRegion
+	}
+
+	if az, ok := os.LookupEnv("TEST_AVAILABILITY_ZONE"); ok {
+		testConfig.az = az
+	} else {
+		testConfig.az = defaultAz
 	}
 
 	if name, ok := os.LookupEnv("TEST_IMAGE_NAME"); ok {
-		testConfig.imageId = fmt.Sprintf("%q", name)
+		testConfig.imageId = name
+	} else {
+		testConfig.imageId = "pcluster-image-build-test-01"
 	}
 
 	if endpoint, ok := os.LookupEnv("TEST_ENDPOINT"); ok {
@@ -73,10 +81,6 @@ func TestEnd2EndImage(t *testing.T) {
 
 	if name, ok := os.LookupEnv("TEST_PCAPI_STACK_NAME"); ok {
 		testConfig.apiStackName = fmt.Sprintf("%q", name)
-	}
-
-	if parentImage, ok := os.LookupEnv("TEST_PARENT_IMAGE"); ok {
-		testConfig.parentImage = parentImage
 	}
 
 	t.Parallel()
@@ -115,6 +119,7 @@ func TestEnd2EndImage(t *testing.T) {
 				ImportStateVerifyIgnore: []string{
 					"cloudformation_stack_arn",
 					"cloudformation_stack_status",
+					"rollback_on_failure",
 				},
 			},
 			// Image Data Source Test
@@ -162,29 +167,23 @@ func TestEnd2EndImage(t *testing.T) {
 }
 
 func (c *imageTestConfig) providerConfig() string {
-	var endpoint string
-	if c.endpoint == "" {
-		endpoint = "null"
-	} else {
-		endpoint = fmt.Sprintf("%q", c.endpoint)
-	}
 	return fmt.Sprintf(`
 provider "pcluster" {
-  role_arn = %v
-  use_user_role = %v
-  api_stack_name = %v
-  endpoint = %v
-  region   = %v
+  role_arn = %s
+  use_user_role = %s
+  api_stack_name = %s
+  endpoint = %s
+  region   = "%s"
 }
 
-`, c.role, c.useUserRole, c.apiStackName, endpoint, c.region)
+`, c.role, c.useUserRole, c.apiStackName, c.endpoint, c.region)
 }
 
 func (c *imageTestConfig) imageListDataSourceConfig() string {
 	dataSource := fmt.Sprintf(`
-data "pcluster_list_images" "%v" {
+data "pcluster_list_images" "%s" {
   image_status = "AVAILABLE"
-  region = %v
+  region = "%s"
 }
 
 `, c.resourceName, c.region)
@@ -194,8 +193,8 @@ data "pcluster_list_images" "%v" {
 
 func (c *imageTestConfig) imageDataSourceConfig() string {
 	dataSource := fmt.Sprintf(`
-data "pcluster_image" "%v" {
-  image_id = "%v"
+data "pcluster_image" "%s" {
+  image_id = "%s"
 }
 
 `, c.resourceName, c.imageId)
@@ -205,10 +204,73 @@ data "pcluster_image" "%v" {
 
 func (c *imageTestConfig) imageResourceConfig() string {
 	return c.providerConfig() + fmt.Sprintf(`
-resource "aws_default_vpc" "default" {
+locals {
+	default_region = "%s"
+	default_az = "%s"
+}
+
+resource "aws_vpc" "build" {
+	enable_dns_support   = true
+	enable_dns_hostnames = true
+  cidr_block           = "10.0.0.0/16"
+
   tags = {
-    Name = "Default VPC"
+    Name = "ImageBuildTestVpc"
   }
+}
+
+resource "aws_subnet" "private_subnet" {
+  vpc_id                  = aws_vpc.build.id
+  cidr_block              = "10.0.2.0/24"
+  availability_zone       = local.default_az
+  map_public_ip_on_launch = true
+  tags = {
+    Name        = "ImageBuildTest"
+  }
+}
+
+resource "aws_security_group" "build" {
+  vpc_id = aws_vpc.build.id
+
+  egress {
+    from_port        = 443
+    to_port          = 443
+    protocol         = "tcp"
+    cidr_blocks      = ["0.0.0.0/0"]
+    ipv6_cidr_blocks = ["::/0"]
+  }
+}
+
+resource "aws_internet_gateway" "gw" {
+  vpc_id = aws_vpc.build.id
+
+  tags = {
+    Name = "ImageBuildTest"
+  }
+}
+
+resource "aws_route_table" "public" {
+  vpc_id = aws_vpc.build.id
+
+  route {
+    cidr_block = "0.0.0.0/0"
+    gateway_id = aws_internet_gateway.gw.id
+  }
+
+  tags = {
+    Name = "image-build-test-public-route-table"
+  }
+}
+
+resource "aws_route_table_association" "public" {
+  subnet_id      = aws_subnet.private_subnet.id
+  route_table_id = aws_route_table.public.id
+}
+
+data "pcluster_list_official_images" "parent_image" {
+        region = local.default_region
+        os = "alinux2"
+        architecture = "x86_64"
 }
 
 // Null resource allows us to use built-in test functions above
@@ -217,17 +279,21 @@ data "null_data_source" "values" {
     image_config = yamlencode({
       "Build":{
               "InstanceType": "c5.2xlarge",
-              "ParentImage": "%v"
+              "ParentImage": data.pcluster_list_official_images.parent_image.official_images[0].amiId,
+							"SubnetId": aws_subnet.private_subnet.id,
+              "SecurityGroupIds": [aws_security_group.build.id],
+              "UpdateOsPackages": {"Enabled": false}
       }
     })
 	}
 }
 
-resource "pcluster_image" "%v" {
+resource "pcluster_image" "%s" {
   image_id = "%s"
   image_configuration = data.null_data_source.values.inputs.image_config
+  rollback_on_failure = false
 }
-`, c.parentImage, c.resourceName, c.imageId)
+`, c.region, c.az, c.resourceName, c.imageId)
 }
 
 func TestUnitWaitImageReady(t *testing.T) {

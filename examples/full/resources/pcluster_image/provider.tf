@@ -13,10 +13,14 @@
 */
 
 provider "pcluster" {
-  endpoint = var.endpoint
-  role_arn = var.role_arn
-  region   = var.region
-  profile  = var.profile
+  region           = var.region
+  profile          = var.profile
+  use_user_role    = true
+  api_stack_name = var.api_stack_name
+}
+
+provider "aws" {
+  region = var.region
 }
 
 terraform {
@@ -24,7 +28,7 @@ terraform {
   required_providers {
     pcluster = {
       source  = "terraform.local/local/pcluster"
-      version = "0.0.1"
+      version = "3.9.0-1"
     }
   }
 }

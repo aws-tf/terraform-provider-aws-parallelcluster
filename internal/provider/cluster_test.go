@@ -54,9 +54,21 @@ func TestEnd2EndCluster(t *testing.T) {
 		configVariables["region"] = config.StringVariable(region)
 		configUpdateVariables["region"] = config.StringVariable(region)
 	} else {
-		os.Setenv("AWS_REGION", "us-east-1")
-		configVariables["region"] = config.StringVariable("us-east-1")
-		configUpdateVariables["region"] = config.StringVariable("us-east-1")
+		os.Setenv("AWS_REGION", defaultRegion)
+		configVariables["region"] = config.StringVariable(defaultRegion)
+		configUpdateVariables["region"] = config.StringVariable(defaultRegion)
+	}
+
+	if az, ok := os.LookupEnv("TEST_AVAILABILITY_ZONE"); ok {
+		configVariables["public_subnet_az"] = config.StringVariable(az)
+		configVariables["private_subnet_az"] = config.StringVariable(az)
+		configUpdateVariables["public_subnet_az"] = config.StringVariable(az)
+		configUpdateVariables["private_subnet_az"] = config.StringVariable(az)
+	} else {
+		configVariables["public_subnet_az"] = config.StringVariable(defaultAz)
+		configVariables["private_subnet_az"] = config.StringVariable(defaultAz)
+		configUpdateVariables["public_subnet_az"] = config.StringVariable(defaultAz)
+		configUpdateVariables["private_subnet_az"] = config.StringVariable(defaultAz)
 	}
 
 	if endpoint, ok := os.LookupEnv("TEST_ENDPOINT"); ok {
@@ -176,8 +188,8 @@ func TestUnitPopulateClusterResourceInfo(t *testing.T) {
 	contents := []openapi.ClusterInfoSummary{
 		{
 			ClusterName:               "Case01",
-			Region:                    "us-east-1",
-			Version:                   "3.7.0",
+			Region:                    defaultRegion,
+			Version:                   "some_version",
 			CloudformationStackArn:    "some_arn",
 			ClusterStatus:             openapi.CLUSTERSTATUS_CREATE_COMPLETE,
 			CloudformationStackStatus: openapi.CLOUDFORMATIONSTACKSTATUS_CREATE_COMPLETE,
@@ -233,7 +245,10 @@ func mockHttpServer(configPath string, config string, t *testing.T) *httptest.Se
 			t.Errorf("Expected to request '%s', got: %s", configPath, r.URL.Path)
 		}
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(config))
+		_, err := w.Write([]byte(config))
+		if err != nil {
+			t.Fatalf("Failed to mock http request %v", err)
+		}
 	}))
 
 	return server
@@ -450,7 +465,10 @@ func TestUnitGetCluster(t *testing.T) {
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(clusterJson))
+		_, err := w.Write([]byte(clusterJson))
+		if err != nil {
+			t.Fatalf("Failed to mock http request %v", err)
+		}
 	}))
 	defer server.Close()
 	cR := ClusterResource{}
@@ -517,8 +535,8 @@ func TestUnitPopulateClusterDataDesc(t *testing.T) {
 	contents := []*openapi.DescribeClusterResponseContent{
 		{
 			ClusterName:               "Case01",
-			Region:                    "us-east-1",
-			Version:                   "3.7.0",
+			Region:                    defaultRegion,
+			Version:                   "some_version",
 			CloudformationStackArn:    "some_arn",
 			ClusterStatus:             openapi.CLUSTERSTATUS_CREATE_COMPLETE,
 			CloudFormationStackStatus: openapi.CLOUDFORMATIONSTACKSTATUS_CREATE_COMPLETE,
@@ -552,6 +570,9 @@ func TestUnitPopulateClusterDataDesc(t *testing.T) {
 			"loginNodes":         types.ObjectNull(loginNodesObjectTypes),
 		},
 	)
+	if err != nil {
+		t.Fatalf("Failed to create cluster object %v", err)
+	}
 
 	clusterObject, err := types.ObjectValue(clusterDescriptionObjectTypes, map[string]attr.Value{
 		"version": types.StringValue(contents[0].Version),
@@ -629,8 +650,8 @@ func TestUnitPopulateClusterResourceDesc(t *testing.T) {
 	contents := []*openapi.DescribeClusterResponseContent{
 		{
 			ClusterName:               "Case01",
-			Region:                    "us-east-1",
-			Version:                   "3.7.0",
+			Region:                    defaultRegion,
+			Version:                   "some_version",
 			CloudformationStackArn:    "some_arn",
 			ClusterStatus:             openapi.CLUSTERSTATUS_CREATE_COMPLETE,
 			CloudFormationStackStatus: openapi.CLOUDFORMATIONSTACKSTATUS_CREATE_COMPLETE,
