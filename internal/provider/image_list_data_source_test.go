@@ -22,9 +22,12 @@ import (
 	"testing"
 
 	openapi "github.com/aws-tf/terraform-provider-aws-parallelcluster/internal/provider/openapi"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
+	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-go/tftypes"
 )
 
 func TestUnitNewImageListDataSource(t *testing.T) {
@@ -95,34 +98,10 @@ func TestUnitImageListDataSourceSchema(t *testing.T) {
 
 func TestUnitImageListDataSourceConfigure(t *testing.T) {
 	d := ImageListDataSource{}
-	resp := datasource.ConfigureResponse{}
-	req := datasource.ConfigureRequest{}
 
-	cfg := openapi.NewConfiguration()
-	cfg.Servers = openapi.ServerConfigurations{
-		openapi.ServerConfiguration{
-			URL: "testURL",
-		},
-	}
-
-	awsv4 := awsv4Test()
-
-	req.ProviderData = configData{
-		awsv4:  awsv4,
-		client: openapi.NewAPIClient(cfg),
-	}
-
-	d.Configure(context.TODO(), req, &resp)
-
-	if d.client == nil {
-		t.Fatal("Error client expected to be set.")
-	}
-
-	if d.awsv4 != awsv4 {
-		t.Fatalf("Error matching output expected. O: %#v\nE: %#v",
-			d.awsv4,
-			awsv4,
-		)
+	err := standardDataConfigureTests(&d)
+	if err != nil {
+		t.Fatal(err)
 	}
 }
 
@@ -132,6 +111,7 @@ func TestUnitImageListDataSourceRead(t *testing.T) {
 	req := datasource.ReadRequest{}
 	mResp := datasource.SchemaResponse{}
 	mReq := datasource.SchemaRequest{}
+	ctx := context.TODO()
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
@@ -159,5 +139,106 @@ func TestUnitImageListDataSourceRead(t *testing.T) {
 
 	if !resp.Diagnostics.HasError() {
 		t.Fatal("Expecting read operation to return error.")
+	}
+
+	req.Config = tfsdk.Config{
+		Raw: tftypes.NewValue(
+			tftypes.Object{},
+			map[string]tftypes.Value{
+				"image_status": tftypes.NewValue(
+					tftypes.String,
+					string(openapi.IMAGESTATUSFILTERINGOPTION_AVAILABLE),
+				),
+				"images": {},
+				"region": tftypes.NewValue(tftypes.String, "some_region"),
+			},
+		),
+		Schema: mResp.Schema,
+	}
+
+	resp = datasource.ReadResponse{}
+	resp.State = tfsdk.State{
+		Schema: mResp.Schema,
+	}
+	d.Read(ctx, req, &resp)
+
+	if !resp.Diagnostics.HasError() {
+		t.Fatal("Expecting read operation to return error.")
+	}
+
+	someArn := "some_arn"
+	someStatus := openapi.CLOUDFORMATIONSTACKSTATUS_CREATE_COMPLETE
+	imageList := openapi.ListImagesResponseContent{
+		Images: []openapi.ImageInfoSummary{{
+			ImageId:                   "some_id",
+			Region:                    "some_region",
+			Version:                   "some_version",
+			ImageBuildStatus:          openapi.IMAGEBUILDSTATUS_BUILD_COMPLETE,
+			CloudformationStackArn:    &someArn,
+			CloudformationStackStatus: &someStatus,
+			Ec2AmiInfo: &openapi.Ec2AmiInfoSummary{
+				AmiId: "some_id",
+			},
+		}},
+	}
+	server, err := mockJsonServer([]string{"images/custom"}, imageList)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	cfg = openapi.NewConfiguration()
+	cfg.Servers = openapi.ServerConfigurations{
+		openapi.ServerConfiguration{
+			URL: server.URL,
+		},
+	}
+	d.client = openapi.NewAPIClient(cfg)
+
+	resp = datasource.ReadResponse{}
+	resp.State = tfsdk.State{
+		Schema: mResp.Schema,
+	}
+	d.Read(ctx, req, &resp)
+
+	if resp.Diagnostics.HasError() {
+		t.Fatalf("Unexpected error during read operation: %v", resp.Diagnostics.Errors())
+	}
+
+	expectedOutput := ImageListDataSourceModel{
+		ImageStatus: types.StringValue(string(openapi.IMAGESTATUSFILTERINGOPTION_AVAILABLE)),
+		Region:      types.StringValue("some_region"),
+		Images: types.ListValueMust(types.ObjectType{AttrTypes: imageObjectTypes}, []attr.Value{
+			types.ObjectValueMust(imageObjectTypes, map[string]attr.Value{
+				"imageId": types.StringValue(imageList.Images[0].ImageId),
+				"ec2AmiInfo": types.MapValueMust(
+					types.StringType,
+					map[string]attr.Value{
+						"amiId": types.StringValue(imageList.Images[0].Ec2AmiInfo.AmiId),
+					},
+				),
+				"region":  types.StringValue(imageList.Images[0].Region),
+				"version": types.StringValue(imageList.Images[0].Version),
+				"cloudformationStackArn": types.StringValue(
+					*imageList.Images[0].CloudformationStackArn,
+				),
+				"imageBuildStatus": types.StringValue(
+					string(imageList.Images[0].ImageBuildStatus),
+				),
+				"cloudformationStackStatus": types.StringValue(
+					string(*imageList.Images[0].CloudformationStackStatus),
+				),
+			}),
+		}),
+	}
+
+	var output ImageListDataSourceModel
+	resp.State.Get(ctx, &output)
+
+	if !reflect.DeepEqual(output, expectedOutput) {
+		t.Fatalf(
+			"Expected output did not match output from read operation. \nO: %v\nE: %v\n",
+			output,
+			expectedOutput,
+		)
 	}
 }

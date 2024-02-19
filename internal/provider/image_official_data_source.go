@@ -49,6 +49,14 @@ type OfficialImageDataSourceModel struct {
 	OfficialImages types.List   `tfsdk:"official_images"`
 }
 
+func (d *OfficialImageDataSource) getClient() *openapi.APIClient {
+	return d.client
+}
+
+func (d *OfficialImageDataSource) getAWSv4() openapi.AWSv4 {
+	return d.awsv4
+}
+
 func (d *OfficialImageDataSource) Metadata(
 	ctx context.Context,
 	req datasource.MetadataRequest,
