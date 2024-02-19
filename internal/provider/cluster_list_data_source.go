@@ -66,6 +66,14 @@ type ClusterListDataSourceModel struct {
 	Region        types.String `tfsdk:"region"`
 }
 
+func (d *ClusterListDataSource) getClient() *openapi.APIClient {
+	return d.client
+}
+
+func (d *ClusterListDataSource) getAWSv4() openapi.AWSv4 {
+	return d.awsv4
+}
+
 func (d *ClusterListDataSource) Metadata(
 	ctx context.Context,
 	req datasource.MetadataRequest,
