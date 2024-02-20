@@ -13,7 +13,7 @@ builds:
   flags:
     - -trimpath
   ldflags:
-    - '-s -w -X main.version={{.Version}} -X main.commit={{.Commit}}'
+    - '-s -w -X main.version={{.Version}}'
   goos:
     # Suggested OS's to support:
     # https://developer.hashicorp.com/terraform/registry/providers/os-arch

@@ -13,9 +13,9 @@
 */
 
 provider "pcluster" {
-  region           = var.region
-  profile          = var.profile
-  use_user_role    = true
+  region         = var.region
+  profile        = var.profile
+  use_user_role  = true
   api_stack_name = var.api_stack_name
 }
 
