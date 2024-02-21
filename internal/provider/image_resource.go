@@ -347,7 +347,10 @@ func (r *ImageResource) Create(
 	if imageSummary != nil {
 		data.ImageBuildStatus = types.StringValue(string(imageSummary.GetImageBuildStatus()))
 		if imageSummary.ImageBuildStatus == openapi.IMAGEBUILDSTATUS_BUILD_FAILED {
-			resp.Diagnostics.AddError("Image create failed to complete.", "")
+			resp.Diagnostics.AddError(
+				"Image create failed to complete.",
+				fmt.Sprintf("Reason: %v", imageSummary.GetImagebuilderImageStatusReason()),
+			)
 		}
 
 		if imageSummary.Ec2AmiInfo != nil {
