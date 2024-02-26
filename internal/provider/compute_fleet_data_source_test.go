@@ -20,11 +20,14 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+	"time"
 
 	openapi "github.com/aws-tf/terraform-provider-aws-parallelcluster/internal/provider/openapi"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
+	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-go/tftypes"
 )
 
 func TestUnitNewComputeFleetDataSource(t *testing.T) {
@@ -95,33 +98,10 @@ func TestUnitComputeFleetDataSourceSchema(t *testing.T) {
 
 func TestUnitComputeFleetDataSourceConfigure(t *testing.T) {
 	d := ComputeFleetDataSource{}
-	resp := datasource.ConfigureResponse{}
-	req := datasource.ConfigureRequest{}
-	cfg := openapi.NewConfiguration()
-	cfg.Servers = openapi.ServerConfigurations{
-		openapi.ServerConfiguration{
-			URL: "testURL",
-		},
-	}
 
-	awsv4 := awsv4Test()
-
-	req.ProviderData = configData{
-		awsv4:  awsv4,
-		client: openapi.NewAPIClient(cfg),
-	}
-
-	d.Configure(context.TODO(), req, &resp)
-
-	if d.client == nil {
-		t.Fatal("Error client expected to be set.")
-	}
-
-	if d.awsv4 != awsv4 {
-		t.Fatalf("Error matching output expected. O: %#v\nE: %#v",
-			d.awsv4,
-			awsv4,
-		)
+	err := standardDataConfigureTests(&d)
+	if err != nil {
+		t.Fatal(err)
 	}
 }
 
@@ -131,6 +111,7 @@ func TestUnitComputeFleetDataSourceRead(t *testing.T) {
 	req := datasource.ReadRequest{}
 	mResp := datasource.SchemaResponse{}
 	mReq := datasource.SchemaRequest{}
+	ctx := context.TODO()
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
@@ -148,15 +129,94 @@ func TestUnitComputeFleetDataSourceRead(t *testing.T) {
 		client: openapi.NewAPIClient(cfg),
 	}
 
-	d.Schema(context.TODO(), mReq, &mResp)
+	d.Schema(ctx, mReq, &mResp)
 
 	req.Config = tfsdk.Config{
 		Schema: mResp.Schema,
 	}
 
-	d.Read(context.TODO(), req, &resp)
+	d.Read(ctx, req, &resp)
 
 	if !resp.Diagnostics.HasError() {
 		t.Fatal("Expecting read operation to return error.")
+	}
+
+	req.Config = tfsdk.Config{
+		Raw: tftypes.NewValue(
+			tftypes.Object{},
+			map[string]tftypes.Value{
+				"cluster_name": tftypes.NewValue(
+					tftypes.String,
+					"some_name",
+				),
+				"status": {},
+				"region": tftypes.NewValue(
+					tftypes.String,
+					"some_region",
+				),
+				"last_status_update_time": tftypes.NewValue(
+					tftypes.String,
+					"some_time",
+				),
+			},
+		),
+		Schema: mResp.Schema,
+	}
+
+	resp = datasource.ReadResponse{}
+	resp.State = tfsdk.State{
+		Schema: mResp.Schema,
+	}
+	d.Read(ctx, req, &resp)
+
+	if !resp.Diagnostics.HasError() {
+		t.Fatal("Expecting read operation to return error.")
+	}
+
+	someTime := time.Now()
+	computeFleet := openapi.DescribeComputeFleetResponseContent{
+		Status:                openapi.COMPUTEFLEETSTATUS_ENABLED,
+		LastStatusUpdatedTime: &someTime,
+	}
+
+	server, err := mockJsonServer([]string{"clusters/some_name/computefleet"}, computeFleet)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer server.Close()
+
+	cfg.Servers = openapi.ServerConfigurations{
+		openapi.ServerConfiguration{
+			URL: server.URL,
+		},
+	}
+	d.client = openapi.NewAPIClient(cfg)
+
+	resp = datasource.ReadResponse{}
+	resp.State = tfsdk.State{
+		Schema: mResp.Schema,
+	}
+	d.Read(ctx, req, &resp)
+
+	if resp.Diagnostics.HasError() {
+		t.Fatalf("Read operation returned unexpected error: %v", resp.Diagnostics.Errors())
+	}
+
+	expectedOutput := ComputeFleetDataSourceModel{
+		ClusterName: types.StringValue("some_name"),
+		Region:      types.StringValue("some_region"),
+		Status:      types.StringValue(string(computeFleet.Status)),
+		LastStatusUpdateTime: types.StringValue(
+			computeFleet.LastStatusUpdatedTime.Round(0).String(),
+		),
+	}
+	var output ComputeFleetDataSourceModel
+	resp.State.Get(ctx, &output)
+
+	if !reflect.DeepEqual(output, expectedOutput) {
+		t.Fatalf("Expected output did not match actual output: \nO: %v\nE: %v\n",
+			output,
+			expectedOutput,
+		)
 	}
 }
