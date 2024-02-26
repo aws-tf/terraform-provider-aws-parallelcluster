@@ -12,6 +12,15 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 )
 
+type mockCfg struct {
+	out         jsonable
+	outText     string
+	path        string
+	method      string
+	useJsonable bool
+	httpError   int
+}
+
 type AttributeValidator struct {
 	description         string
 	markdownDescription string
@@ -59,38 +68,37 @@ func awsv4Test() openapi.AWSv4 {
 	}
 }
 
-func mockJsonWithTextServer(paths []string, outputs ...string) (*httptest.Server, error) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		for i, b := range outputs {
-			if r.URL.Path == "/"+paths[i] {
-				w.Header().Set("Content-Type", "application/json")
-				_, _ = w.Write([]byte(b))
-				return
+func mockJsonServer(mocks ...mockCfg) (*httptest.Server, error) {
+	for _, m := range mocks {
+		var err error
+		if m.useJsonable || m.out != nil {
+			_, err = m.out.MarshalJSON()
+			if err != nil {
+				return nil, fmt.Errorf("Failed to marshal list clusters response JSON.")
 			}
 		}
-	},
-	))
-
-	return server, nil
-}
-
-func mockJsonServer(paths []string, jsons ...jsonable) (*httptest.Server, error) {
-	var respJSONs [][]byte
-
-	for _, j := range jsons {
-		respJSON, err := j.MarshalJSON()
-		if err != nil {
-			return nil, fmt.Errorf("Failed to marshal list clusters response JSON.")
-		}
-		respJSONs = append(respJSONs, respJSON)
 	}
-
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		for i, j := range respJSONs {
-			if r.URL.Path == "/v3/"+paths[i] {
+		for _, m := range mocks {
+			if m.method == "" {
+				m.method = http.MethodGet
+			}
+			if r.URL.Path == "/v3/"+m.path && r.Method == m.method {
 				w.Header().Set("Content-Type", "application/json")
-				_, _ = w.Write(j)
-				return
+				if m.httpError != 0 {
+					w.WriteHeader(m.httpError)
+				}
+				if m.useJsonable || m.out != nil {
+					j, err := m.out.MarshalJSON()
+					if err != nil {
+						w.WriteHeader(http.StatusInternalServerError)
+						return
+					}
+					_, _ = w.Write(j)
+					return
+				} else {
+					_, _ = w.Write([]byte(m.outText))
+				}
 			}
 		}
 	},

@@ -241,26 +241,20 @@ func TestUnitImageDataSourceRead(t *testing.T) {
 		}},
 	}
 
-	pathsToTest := []string{
-		"images/custom/some_id",
-		"images/custom/some_id/logstreams",
-		"images/custom/some_id/stackevents",
-	}
-
 	someConfig := "some_config"
-	s3Server, err := mockJsonWithTextServer([]string{someUrl}, someConfig)
+	s3Server, err := mockJsonServer(mockCfg{path: someUrl, outText: someConfig, useJsonable: false})
 	if err != nil {
 		t.Fatal(err)
 	}
-	url := s3Server.URL + "/" + someUrl
+	url := s3Server.URL + "/v3/" + someUrl
 	image.ImageConfiguration.Url = &url
 
-	server, err = mockJsonServer(
-		pathsToTest,
-		image,
-		logStreams,
-		stackEvents,
-	)
+	mocks := []mockCfg{
+		{path: "images/custom/some_id", out: image},
+		{path: "images/custom/some_id/logstreams", out: logStreams},
+		{path: "images/custom/some_id/stackevents", out: stackEvents},
+	}
+	server, err = mockJsonServer(mocks...)
 	if err != nil {
 		t.Fatal(err)
 	}

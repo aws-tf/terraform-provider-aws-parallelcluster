@@ -260,7 +260,7 @@ func TestUnitClusterListDataSourceRead(t *testing.T) {
 			},
 		},
 	}
-	server, err := mockJsonServer([]string{"clusters"}, input)
+	server, err := mockJsonServer(mockCfg{path: "clusters", out: input})
 	if err != nil {
 		t.Fatal(err)
 	}

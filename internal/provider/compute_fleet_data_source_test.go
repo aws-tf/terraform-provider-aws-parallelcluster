@@ -179,7 +179,9 @@ func TestUnitComputeFleetDataSourceRead(t *testing.T) {
 		LastStatusUpdatedTime: &someTime,
 	}
 
-	server, err := mockJsonServer([]string{"clusters/some_name/computefleet"}, computeFleet)
+	server, err := mockJsonServer(
+		mockCfg{path: "clusters/some_name/computefleet", out: computeFleet},
+	)
 	if err != nil {
 		t.Fatal(err)
 	}

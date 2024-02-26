@@ -183,7 +183,7 @@ func TestUnitOfficialImageDataSourceRead(t *testing.T) {
 		}},
 	}
 
-	server, err := mockJsonServer([]string{"images/official"}, officialImageList)
+	server, err := mockJsonServer(mockCfg{path: "images/official", out: officialImageList})
 	if err != nil {
 		t.Fatal(err)
 	}
