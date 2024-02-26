@@ -79,6 +79,12 @@ See https://github.com/hashicorp/Terraform-plugin-docs for more information.
 
 ## Testing
 
+Workflows exist to lint go and terraform code, check code coverage, and run tests.
+
+To check go code before creating a PR golangci-lint may be used. See for installation instructions:  https://golangci-lint.run/usage/install/#local-installation. Run with the following command: `golangci-lint run`.
+
+To check terraform before creating a PR, the terraform fmt command may be used. Run with the following command: `terraform fmt -recursive ./examples`. Note, by default terraform fmt will fix files, if you only want to run a check add the `-check` flag. 
+
 Running `make test` is sufficient to run unit tests and end-to-end tests using the default aws profile in us-east-1. The following environment variables can customize the end-to-end tests.
 
 - `TEST_REGION` The region used for deploying resources and query data sources. Defaults to "us-east-1". 
@@ -94,7 +100,7 @@ The sdk test framework also has configuration variables. These control some of t
 
 In order to run the full suite of End-to-End tests,  Run `make test_end2end`.
 
-In order to run unit tests, run `make test_unit`.
+In order to run unit tests, run `make test_unit`. To create a coverage profile the following may be used: `make test_unit TESTARGS="-coverprofile=cover.out"`. To read the coverage profile use: `go tool cover -html=cover.out`.
 
 To run end-to-end tests and unit tests, run `make test`.
 
