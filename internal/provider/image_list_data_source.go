@@ -23,7 +23,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/hashicorp/terraform-plugin-log/tflog"
 
 	openapi "github.com/aws-tf/terraform-provider-aws-parallelcluster/internal/provider/openapi"
 )
@@ -72,6 +71,14 @@ func ValidateImageStatusFilter(
 			fmt.Sprintf("Must be one of %v", openapi.AllowedImageStatusFilteringOptionEnumValues),
 		)
 	}
+}
+
+func (d *ImageListDataSource) getClient() *openapi.APIClient {
+	return d.client
+}
+
+func (d *ImageListDataSource) getAWSv4() openapi.AWSv4 {
+	return d.awsv4
 }
 
 func (d *ImageListDataSource) Metadata(
@@ -208,7 +215,6 @@ func (d *ImageListDataSource) Read(
 			delete(imageMap, "ec2AmiInfo")
 
 			tfImageMap, diags := types.MapValueFrom(ctx, types.StringType, imageMap)
-
 			resp.Diagnostics.Append(diags...)
 
 			tfImageMapElements := tfImageMap.Elements()
@@ -248,9 +254,6 @@ func (d *ImageListDataSource) Read(
 	)
 	resp.Diagnostics.Append(diags...)
 	data.Images = tfImageList
-
-	// Documentation: https://terraform.io/plugin/log
-	tflog.Trace(ctx, "read a data source")
 
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)

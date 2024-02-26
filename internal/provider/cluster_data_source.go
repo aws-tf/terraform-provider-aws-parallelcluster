@@ -17,6 +17,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"math/big"
 	"net/http"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
@@ -35,8 +36,8 @@ var (
 		"status":         types.StringType,
 		"address":        types.StringType,
 		"scheme":         types.StringType,
-		"healthyNodes":   types.StringType,
-		"unhealthyNodes": types.StringType,
+		"healthyNodes":   types.NumberType,
+		"unhealthyNodes": types.NumberType,
 	}
 	clusterDescriptionObjectTypes = map[string]attr.Type{
 		"clusterName":               types.StringType,
@@ -77,6 +78,14 @@ type ClusterDataSourceModel struct {
 	Filters     types.List   `tfsdk:"filters"`
 	Region      types.String `tfsdk:"region"`
 	StackEvents types.List   `tfsdk:"stack_events"`
+}
+
+func (d *ClusterDataSource) getClient() *openapi.APIClient {
+	return d.client
+}
+
+func (d *ClusterDataSource) getAWSv4() openapi.AWSv4 {
+	return d.awsv4
 }
 
 func (d *ClusterDataSource) Metadata(
@@ -360,10 +369,27 @@ func populateClusterDataSource(
 				fmt.Sprintf("Error: %v", err),
 			)
 		}
-		loginNodesObject, diags := types.ObjectValueFrom(
+		delete(loginNodesMap, "healthyNodes")
+		delete(loginNodesMap, "unhealthyNodes")
+
+		loginNodesObjectMap, diags := types.MapValueFrom(
 			ctx,
-			loginNodesObjectTypes,
+			types.StringType,
 			loginNodesMap,
+		)
+		loginNodesObjectMapElements := loginNodesObjectMap.Elements()
+
+		loginNodesObjectMapElements["healthyNodes"] = types.NumberValue(
+			big.NewFloat(float64(loginNodes.GetHealthyNodes())),
+		)
+		loginNodesObjectMapElements["unhealthyNodes"] = types.NumberValue(
+			big.NewFloat(float64(loginNodes.GetUnhealthyNodes())),
+		)
+
+		resp.Diagnostics.Append(diags...)
+		loginNodesObject, diags := types.ObjectValue(
+			loginNodesObjectTypes,
+			loginNodesObjectMapElements,
 		)
 		resp.Diagnostics.Append(diags...)
 		tfClusterMapElements["loginNodes"] = loginNodesObject
@@ -468,8 +494,6 @@ func (d *ClusterDataSource) Read(
 		)
 		resp.Diagnostics.Append(diags...)
 		data.LogStreams = tfLogStreamsList
-	} else {
-		data.LogStreams = types.ListNull(types.StringType)
 	}
 
 	// Populate Image Log Events
@@ -482,12 +506,8 @@ func (d *ClusterDataSource) Read(
 		imageStackEventsReq = imageStackEventsReq.Region(data.Region.ValueString())
 	}
 
-	if !data.Region.IsNull() {
-		imageStackEventsReq = imageStackEventsReq.Region(data.Region.ValueString())
-	}
-
 	stackEvents, _, _ := imageStackEventsReq.Execute()
-
+	data.StackEvents = types.ListNull(types.MapType{ElemType: types.StringType})
 	if stackEvents != nil {
 		stackEventsList := make([]attr.Value, 0)
 		for _, stackEvent := range stackEvents.GetEvents() {
@@ -514,8 +534,6 @@ func (d *ClusterDataSource) Read(
 		)
 		resp.Diagnostics.Append(diags...)
 		data.StackEvents = tfStackEventsList
-	} else {
-		data.StackEvents = types.ListNull(types.MapType{ElemType: types.StringType})
 	}
 
 	// Documentation: https://terraform.io/plugin/log

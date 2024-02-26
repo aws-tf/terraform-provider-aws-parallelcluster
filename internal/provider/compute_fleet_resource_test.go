@@ -20,11 +20,14 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+	"time"
 
 	openapi "github.com/aws-tf/terraform-provider-aws-parallelcluster/internal/provider/openapi"
 	"github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
+	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-go/tftypes"
 )
 
 func TestUnitNewComputeFleetStatusResource(t *testing.T) {
@@ -95,34 +98,10 @@ func TestUnitComputeFleetStatusResourceSchema(t *testing.T) {
 
 func TestUnitComputeFleetStatusResourceConfigure(t *testing.T) {
 	r := ComputeFleetStatusResource{}
-	resp := resource.ConfigureResponse{}
-	req := resource.ConfigureRequest{}
 
-	cfg := openapi.NewConfiguration()
-	cfg.Servers = openapi.ServerConfigurations{
-		openapi.ServerConfiguration{
-			URL: "testURL",
-		},
-	}
-
-	awsv4 := awsv4Test()
-
-	req.ProviderData = configData{
-		awsv4:  awsv4,
-		client: openapi.NewAPIClient(cfg),
-	}
-
-	r.Configure(context.TODO(), req, &resp)
-
-	if r.client == nil {
-		t.Fatal("Error client expected to be set.")
-	}
-
-	if r.awsv4 != awsv4 {
-		t.Fatalf("Error matching output expected. O: %#v\nE: %#v",
-			r.awsv4,
-			awsv4,
-		)
+	err := standardResourceConfigureTests(&r)
+	if err != nil {
+		t.Fatal(err)
 	}
 }
 
@@ -159,6 +138,101 @@ func TestUnitComputeFleetStatusResourceRead(t *testing.T) {
 	r.Read(ctx, req, &resp)
 	if !resp.Diagnostics.HasError() {
 		t.Fatal("Expecting read operation to return error.")
+	}
+
+	req.State = tfsdk.State{
+		Raw: tftypes.NewValue(
+			tftypes.Object{},
+			map[string]tftypes.Value{
+				"id": tftypes.NewValue(
+					tftypes.String,
+					"some_id",
+				),
+				"cluster_name": tftypes.NewValue(
+					tftypes.String,
+					"some_name",
+				),
+				"status_request": {},
+				"status":         {},
+				"region": tftypes.NewValue(
+					tftypes.String,
+					"some_region",
+				),
+				"last_status_update_time": tftypes.NewValue(
+					tftypes.String,
+					"some_time",
+				),
+			},
+		),
+		Schema: mResp.Schema,
+	}
+
+	someTime := time.Now()
+	emptyFleet := openapi.DescribeComputeFleetResponseContent{}
+	computeFleet := openapi.DescribeComputeFleetResponseContent{
+		Status:                openapi.COMPUTEFLEETSTATUS_ENABLED,
+		LastStatusUpdatedTime: &someTime,
+	}
+
+	tests := map[string]openapi.DescribeComputeFleetResponseContent{
+		"invalid/path":                    emptyFleet,
+		"clusters/some_name/computefleet": computeFleet,
+	}
+
+	expectedOutputs := map[string]ComputeFleetStatusResourceModel{
+		"invalid/path": {
+			Id:          types.StringValue("some_id"),
+			ClusterName: types.StringValue("some_name"),
+			Region:      types.StringValue("some_region"),
+			Status:      types.StringValue(""),
+			LastStatusUpdateTime: types.StringValue(
+				emptyFleet.GetLastStatusUpdatedTime().String(),
+			),
+		},
+		"clusters/some_name/computefleet": {
+			Id:          types.StringValue("some_id"),
+			ClusterName: types.StringValue("some_name"),
+			Region:      types.StringValue("some_region"),
+			Status:      types.StringValue(string(computeFleet.Status)),
+			LastStatusUpdateTime: types.StringValue(
+				computeFleet.LastStatusUpdatedTime.Round(0).String(),
+			),
+		},
+	}
+	for k, test := range tests {
+		server, err := mockJsonServer([]string{k}, test)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer server.Close()
+
+		cfg.Servers = openapi.ServerConfigurations{
+			openapi.ServerConfiguration{
+				URL: server.URL,
+			},
+		}
+		r.client = openapi.NewAPIClient(cfg)
+
+		resp = resource.ReadResponse{}
+		resp.State = tfsdk.State{
+			Schema: mResp.Schema,
+		}
+		r.Read(ctx, req, &resp)
+
+		output := ComputeFleetStatusResourceModel{}
+		resp.State.Get(ctx, &output)
+
+		if resp.Diagnostics.HasError() {
+			t.Fatalf("Read operation returned unexpected error: %v", resp.Diagnostics)
+		}
+
+		if !reflect.DeepEqual(output, expectedOutputs[k]) {
+			t.Fatalf(
+				"Epected output did not match actual output: \nO:%v\nE:%v\n",
+				output,
+				expectedOutputs[k],
+			)
+		}
 	}
 
 	dResp := resource.DeleteResponse{}
