@@ -22,9 +22,11 @@ import (
 	"testing"
 
 	openapi "github.com/aws-tf/terraform-provider-aws-parallelcluster/internal/provider/openapi"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
+	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
 )
 
@@ -120,34 +122,10 @@ func TestUnitClusterListDataSourceSchema(t *testing.T) {
 
 func TestUnitClusterListDataSourceConfigure(t *testing.T) {
 	d := ClusterListDataSource{}
-	resp := datasource.ConfigureResponse{}
-	req := datasource.ConfigureRequest{}
 
-	cfg := openapi.NewConfiguration()
-	cfg.Servers = openapi.ServerConfigurations{
-		openapi.ServerConfiguration{
-			URL: "testURL",
-		},
-	}
-
-	awsv4 := awsv4Test()
-
-	req.ProviderData = configData{
-		awsv4:  awsv4,
-		client: openapi.NewAPIClient(cfg),
-	}
-
-	d.Configure(context.TODO(), req, &resp)
-
-	if d.client == nil {
-		t.Fatal("Error client expected to be set.")
-	}
-
-	if d.awsv4 != awsv4 {
-		t.Fatalf("Error matching output expected. O: %#v\nE: %#v",
-			d.awsv4,
-			awsv4,
-		)
+	err := standardDataConfigureTests(&d)
+	if err != nil {
+		t.Fatal(err)
 	}
 }
 
@@ -189,78 +167,6 @@ func TestUnitClusterListDataSourceRead(t *testing.T) {
 
 	if !resp.Diagnostics.HasError() {
 		t.Fatal("Expecting read operation to return error.")
-	}
-
-	req.Config = tfsdk.Config{
-		Raw: tftypes.NewValue(
-			tftypes.Object{},
-			map[string]tftypes.Value{
-				"clusters": {},
-				"cluster_status": tftypes.NewValue(
-					tftypes.List{ElementType: tftypes.String},
-					[]tftypes.Value{
-						tftypes.NewValue(
-							tftypes.String,
-							string(openapi.CLUSTERSTATUS_CREATE_COMPLETE),
-						),
-					},
-				),
-				"region": {},
-			},
-		),
-		Schema: mResp.Schema,
-	}
-
-	resp = datasource.ReadResponse{}
-	resp.State = tfsdk.State{
-		Schema: mResp.Schema,
-	}
-	d.Read(ctx, req, &resp)
-
-	if !resp.Diagnostics.HasError() {
-		t.Fatal("Expecting read operation to return error.")
-	}
-
-	name := "test"
-	version := "some_version"
-
-	scheduler := openapi.NewScheduler(name)
-	scheduler.Metadata = &openapi.Metadata{
-		Name:    &name,
-		Version: &version,
-	}
-
-	expectedOutput := openapi.ClusterInfoSummary{
-		ClusterName:               name,
-		CloudformationStackArn:    "some_stack",
-		CloudformationStackStatus: openapi.CLOUDFORMATIONSTACKSTATUS_CREATE_COMPLETE,
-		ClusterStatus:             openapi.CLUSTERSTATUS_CREATE_COMPLETE,
-		Scheduler:                 scheduler,
-	}
-
-	server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		respJSON, err := openapi.ListClustersResponseContent{
-			Clusters: []openapi.ClusterInfoSummary{expectedOutput},
-		}.MarshalJSON()
-		if err != nil {
-			t.Fatal("Failed to marshal list clusters response JSON.")
-		}
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(respJSON))
-	}))
-	defer server.Close()
-
-	cfg = openapi.NewConfiguration()
-	cfg.Servers = openapi.ServerConfigurations{
-		openapi.ServerConfiguration{
-			URL: server.URL,
-		},
-	}
-
-	d = ClusterListDataSource{
-		awsv4:  awsv4Test(),
-		client: openapi.NewAPIClient(cfg),
 	}
 
 	req.Config = tfsdk.Config{
@@ -330,8 +236,95 @@ func TestUnitClusterListDataSourceRead(t *testing.T) {
 	}
 	d.Read(ctx, req, &resp)
 
+	if !resp.Diagnostics.HasError() {
+		t.Fatal("Expecting read operation to return error.")
+	}
+
+	name := "test"
+	version := "some_version"
+
+	scheduler := openapi.NewScheduler(name)
+	scheduler.Metadata = &openapi.Metadata{
+		Name:    &name,
+		Version: &version,
+	}
+
+	input := openapi.ListClustersResponseContent{
+		Clusters: []openapi.ClusterInfoSummary{
+			{
+				ClusterName:               name,
+				CloudformationStackArn:    "some_stack",
+				CloudformationStackStatus: openapi.CLOUDFORMATIONSTACKSTATUS_CREATE_COMPLETE,
+				ClusterStatus:             openapi.CLUSTERSTATUS_CREATE_COMPLETE,
+				Scheduler:                 scheduler,
+			},
+		},
+	}
+	server, err := mockJsonServer([]string{"clusters"}, input)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer server.Close()
+
+	cfg = openapi.NewConfiguration()
+	cfg.Servers = openapi.ServerConfigurations{
+		openapi.ServerConfiguration{
+			URL: server.URL,
+		},
+	}
+
+	d = ClusterListDataSource{
+		awsv4:  awsv4Test(),
+		client: openapi.NewAPIClient(cfg),
+	}
+
+	resp = datasource.ReadResponse{}
+	resp.State = tfsdk.State{
+		Schema: mResp.Schema,
+	}
+	d.Read(ctx, req, &resp)
+
 	if resp.Diagnostics.HasError() {
 		t.Fatalf("Read operation returned unexpected error: %v", resp.Diagnostics)
+	}
+
+	expectedOutput := ClusterListDataSourceModel{
+		ClusterStatus: types.ListValueMust(types.StringType, []attr.Value{}),
+		Region:        types.StringValue(""),
+		Clusters: types.ListValueMust(
+			types.ObjectType{AttrTypes: clusterObjectTypes},
+			[]attr.Value{types.ObjectValueMust(clusterObjectTypes, map[string]attr.Value{
+				"clusterName": types.StringValue(input.Clusters[0].ClusterName),
+				"clusterStatus": types.StringValue(
+					string(input.Clusters[0].ClusterStatus),
+				),
+				"region": types.StringValue(input.Clusters[0].Region),
+				"cloudformationStackArn": types.StringValue(
+					input.Clusters[0].CloudformationStackArn,
+				),
+				"cloudformationStackStatus": types.StringValue(
+					string(input.Clusters[0].CloudformationStackStatus),
+				),
+				"scheduler": types.ObjectValueMust(
+					schedulerObjectTypes,
+					map[string]attr.Value{
+						"metadata": types.ObjectValueMust(
+							metadataObjectTypes,
+							map[string]attr.Value{
+								"name": types.StringValue(
+									*input.Clusters[0].Scheduler.Metadata.Name,
+								),
+								"version": types.StringValue(
+									*input.Clusters[0].Scheduler.Metadata.Version,
+								),
+							},
+						),
+						"type": types.StringValue(input.Clusters[0].Scheduler.Type),
+					},
+				),
+				"version": types.StringValue(input.Clusters[0].Version),
+			})},
+		),
 	}
 
 	output := ClusterListDataSourceModel{}
@@ -340,16 +333,11 @@ func TestUnitClusterListDataSourceRead(t *testing.T) {
 		t.Fatalf("Read operation returned unexpected error while retrieving state data: %v", diags)
 	}
 
-	expectedBytOut, err := expectedOutput.MarshalJSON()
-	if err != nil {
-		t.Fatalf("Unexpected error while converting expected output to json: %v", err.Error())
-	}
-
-	if output.Clusters.Elements()[0].String() != string(expectedBytOut) {
+	if !reflect.DeepEqual(expectedOutput, output) {
 		t.Fatalf(
-			"Expected output did not match output from read operation. E: %v\nO: %v\n",
-			string(expectedBytOut),
-			output.Clusters.Elements()[0].String(),
+			"Expected output did not match output from read operation. \nE: %v\nO: %v\n",
+			expectedOutput,
+			output,
 		)
 	}
 }

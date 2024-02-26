@@ -54,7 +54,6 @@ clean:
 	rm -rf build/*
 
 # Run tests
-
 test:
 	TF_ACC=1 go test ./... -v $(TESTARGS) -timeout 120m
 	cd internal/provider/openapi; \

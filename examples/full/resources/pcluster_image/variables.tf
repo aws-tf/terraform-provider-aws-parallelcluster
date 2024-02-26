@@ -28,6 +28,18 @@ variable "endpoint" {
   default     = null
 }
 
+variable "api_stack_name" {
+  type        = string
+  description = "The name of the cloudformation stack used for the ParallelCluster API."
+  default     = null
+}
+
+variable "parent_image" {
+  type        = string
+  description = "The image id to use as the base AMI of the new image."
+  default     = "ami-033a1ef04d047e1ca"
+}
+
 variable "profile" {
   type        = string
   description = "The aws profile to use."
@@ -36,6 +48,12 @@ variable "profile" {
 
 variable "region" {
   type        = string
-  description = "The region to create the cluster in"
+  description = "The region to create the image in"
   default     = "us-east-1"
+}
+
+variable "default_az" {
+  type        = string
+  description = "The default availability zone to create the image in"
+  default     = "us-east-1a"
 }

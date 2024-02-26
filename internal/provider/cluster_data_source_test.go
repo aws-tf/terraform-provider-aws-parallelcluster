@@ -15,16 +15,21 @@ package provider
 
 import (
 	"context"
+	"math/big"
 	"net/http"
 	"net/http/httptest"
 	"reflect"
 	"strings"
 	"testing"
+	"time"
 
 	openapi "github.com/aws-tf/terraform-provider-aws-parallelcluster/internal/provider/openapi"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
+	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-go/tftypes"
 )
 
 func TestUnitNewClusterDataSource(t *testing.T) {
@@ -98,34 +103,10 @@ func TestUnitClusterDataSourceSchema(t *testing.T) {
 func TestUnitClusterDataSourceConfigure(t *testing.T) {
 	t.Parallel()
 	d := ClusterDataSource{}
-	resp := datasource.ConfigureResponse{}
-	req := datasource.ConfigureRequest{}
 
-	cfg := openapi.NewConfiguration()
-	cfg.Servers = openapi.ServerConfigurations{
-		openapi.ServerConfiguration{
-			URL: "testURL",
-		},
-	}
-
-	awsv4 := awsv4Test()
-
-	req.ProviderData = configData{
-		awsv4:  awsv4,
-		client: openapi.NewAPIClient(cfg),
-	}
-
-	d.Configure(context.TODO(), req, &resp)
-
-	if d.client == nil {
-		t.Fatal("Error client expected to be set.")
-	}
-
-	if d.awsv4 != awsv4 {
-		t.Fatalf("Error matching output expected. O: %#v\nE: %#v",
-			d.awsv4,
-			awsv4,
-		)
+	err := standardDataConfigureTests(&d)
+	if err != nil {
+		t.Fatal(err)
 	}
 }
 
@@ -136,6 +117,7 @@ func TestUnitClusterDataSourceRead(t *testing.T) {
 	req := datasource.ReadRequest{}
 	mResp := datasource.SchemaResponse{}
 	mReq := datasource.SchemaRequest{}
+	ctx := context.TODO()
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
@@ -153,14 +135,267 @@ func TestUnitClusterDataSourceRead(t *testing.T) {
 		client: openapi.NewAPIClient(cfg),
 	}
 
-	d.Schema(context.TODO(), mReq, &mResp)
+	d.Schema(ctx, mReq, &mResp)
 
 	req.Config = tfsdk.Config{
 		Schema: mResp.Schema,
 	}
-	d.Read(context.TODO(), req, &resp)
+	d.Read(ctx, req, &resp)
 
 	if !resp.Diagnostics.HasError() {
 		t.Fatal("Expecting read operation to return error.")
+	}
+
+	req.Config = tfsdk.Config{
+		Raw: tftypes.NewValue(
+			tftypes.Object{},
+			map[string]tftypes.Value{
+				"cluster_name": tftypes.NewValue(
+					tftypes.String,
+					"some_name",
+				),
+				"cluster":     {},
+				"log_streams": {},
+				"filters":     {},
+				"region": tftypes.NewValue(
+					tftypes.String,
+					"some_region",
+				),
+
+				"stack_events": {},
+			},
+		),
+		Schema: mResp.Schema,
+	}
+
+	resp = datasource.ReadResponse{}
+	resp.State = tfsdk.State{
+		Schema: mResp.Schema,
+	}
+	d.Read(ctx, req, &resp)
+
+	if !resp.Diagnostics.HasError() {
+		t.Fatal("Expecting read operation to return error.")
+	}
+
+	mName := "some_name"
+	mVersion := "some_version"
+	// var mHealth int32 = 1
+	// var mUnhealthy int32 = 0
+	cluster := openapi.DescribeClusterResponseContent{
+		ClusterName: mName,
+		ClusterConfiguration: openapi.ClusterConfigurationStructure{
+			Url: &server.URL,
+		},
+		Scheduler: &openapi.Scheduler{
+			Type: "some_type",
+			Metadata: &openapi.Metadata{
+				Name:    &mName,
+				Version: &mVersion,
+			},
+		},
+		HeadNode: &openapi.EC2Instance{
+			InstanceId:       "some_id",
+			InstanceType:     "some_type",
+			LaunchTime:       time.Now(),
+			PrivateIpAddress: "some_address",
+			State:            openapi.INSTANCESTATE_PENDING,
+		},
+		LoginNodes: &openapi.LoginNodesPool{
+			Status:  openapi.LOGINNODESSTATE_ACTIVE,
+			Address: &mName,
+			Scheme:  &mName,
+		},
+		Tags:                      []openapi.Tag{{}},
+		Failures:                  []openapi.Failure{{}},
+		CloudFormationStackStatus: openapi.CLOUDFORMATIONSTACKSTATUS_CREATE_COMPLETE,
+		ClusterStatus:             openapi.CLUSTERSTATUS_CREATE_COMPLETE,
+		ComputeFleetStatus:        openapi.COMPUTEFLEETSTATUS_ENABLED,
+	}
+
+	stackEvents := openapi.GetClusterStackEventsResponseContent{
+		Events: []openapi.StackEvent{{
+			StackId:            "some_stack_id",
+			EventId:            "some_event_id",
+			StackName:          "some_stack_name",
+			LogicalResourceId:  "some_logical_resource_id",
+			PhysicalResourceId: "some_physical_resource_id",
+			ResourceType:       "some_resource_type",
+			Timestamp:          time.Now(),
+			ResourceStatus:     openapi.CLOUDFORMATIONRESOURCESTATUS_CREATE_COMPLETE,
+		}},
+	}
+
+	logStreams := openapi.ListClusterLogStreamsResponseContent{
+		LogStreams: []openapi.LogStream{{
+			LogStreamName:       "some_name",
+			CreationTime:        time.Now(),
+			FirstEventTimestamp: time.Now(),
+			LastEventTimestamp:  time.Now(),
+			LastIngestionTime:   time.Now(),
+			UploadSequenceToken: "some_token",
+			LogStreamArn:        "some_arn",
+		}},
+	}
+	expectedOutputs := []ClusterDataSourceModel{
+		{
+			ClusterName: types.StringValue(cluster.ClusterName),
+			Region:      types.StringValue("some_region"),
+			Filters:     types.ListNull(types.MapType{ElemType: types.StringType}),
+			Cluster: types.ObjectValueMust(clusterDescriptionObjectTypes, map[string]attr.Value{
+				"clusterName": types.StringValue(cluster.ClusterName),
+				"region":      types.StringValue(cluster.Region),
+				"version":     types.StringValue(cluster.Version),
+				"cloudFormationStackStatus": types.StringValue(
+					string(cluster.CloudFormationStackStatus),
+				),
+				"clusterStatus": types.StringValue(string(cluster.ClusterStatus)),
+				"scheduler": types.ObjectValueMust(schedulerObjectTypes, map[string]attr.Value{
+					"metadata": types.ObjectValueMust(metadataObjectTypes, map[string]attr.Value{
+						"name":    types.StringValue(*cluster.Scheduler.Metadata.Name),
+						"version": types.StringValue(*cluster.Scheduler.Metadata.Version),
+					}),
+					"type": types.StringValue(cluster.Scheduler.Type),
+				}),
+				"cloudformationStackArn": types.StringValue(cluster.CloudformationStackArn),
+				"creationTime":           types.StringValue(cluster.CreationTime.Round(0).String()),
+				"lastUpdatedTime": types.StringValue(
+					cluster.LastUpdatedTime.Round(0).String(),
+				),
+				"clusterConfiguration": types.StringValue(""),
+				"computeFleetStatus":   types.StringValue(string(cluster.ComputeFleetStatus)),
+				"tags": types.ListValueMust(
+					types.MapType{ElemType: types.StringType},
+					[]attr.Value{types.MapValueMust(types.StringType, map[string]attr.Value{})},
+				),
+				"headNode": types.MapValueMust(types.StringType, map[string]attr.Value{
+					"instanceId":   types.StringValue(cluster.HeadNode.InstanceId),
+					"instanceType": types.StringValue(cluster.HeadNode.InstanceType),
+					"launchTime": types.StringValue(
+						cluster.HeadNode.LaunchTime.Round(0).String(),
+					),
+					"privateIpAddress": types.StringValue(cluster.HeadNode.PrivateIpAddress),
+					"state":            types.StringValue(string(cluster.HeadNode.State)),
+				}),
+				"failures": types.ListValueMust(
+					types.MapType{ElemType: types.StringType},
+					[]attr.Value{types.MapValueMust(types.StringType, map[string]attr.Value{})},
+				),
+				"loginNodes": types.ObjectValueMust(loginNodesObjectTypes, map[string]attr.Value{
+					"status":  types.StringValue(string(cluster.LoginNodes.Status)),
+					"address": types.StringValue(*cluster.LoginNodes.Address),
+					"scheme":  types.StringValue(*cluster.LoginNodes.Scheme),
+					"healthyNodes": types.NumberValue(
+						big.NewFloat(float64(cluster.LoginNodes.GetHealthyNodes())),
+					),
+					"unhealthyNodes": types.NumberValue(
+						big.NewFloat(float64(cluster.LoginNodes.GetUnhealthyNodes())),
+					),
+				}),
+			}),
+			StackEvents: types.ListValueMust(
+				types.MapType{ElemType: types.StringType},
+				[]attr.Value{
+					types.MapValueMust(types.StringType, map[string]attr.Value{
+						"stackId":   types.StringValue(stackEvents.Events[0].GetStackId()),
+						"eventId":   types.StringValue(stackEvents.Events[0].GetEventId()),
+						"stackName": types.StringValue(stackEvents.Events[0].GetStackName()),
+						"logicalResourceId": types.StringValue(
+							stackEvents.Events[0].GetLogicalResourceId(),
+						),
+						"physicalResourceId": types.StringValue(
+							stackEvents.Events[0].GetPhysicalResourceId(),
+						),
+						"resourceType": types.StringValue(
+							stackEvents.Events[0].GetResourceType(),
+						),
+						"timestamp": types.StringValue(
+							stackEvents.Events[0].GetTimestamp().Round(0).String(),
+						),
+						"resourceStatus": types.StringValue(
+							string(stackEvents.Events[0].GetResourceStatus()),
+						),
+						"resourceStatusReason": types.StringValue(
+							stackEvents.Events[0].GetResourceStatusReason(),
+						),
+						"resourceProperties": types.StringValue(
+							stackEvents.Events[0].GetResourceProperties(),
+						),
+						"clientRequestToken": types.StringValue(
+							stackEvents.Events[0].GetClientRequestToken(),
+						),
+					}),
+				},
+			),
+			LogStreams: types.ListValueMust(
+				types.MapType{ElemType: types.StringType},
+				[]attr.Value{
+					types.MapValueMust(types.StringType, map[string]attr.Value{
+						"logStreamName": types.StringValue(logStreams.LogStreams[0].LogStreamName),
+						"creationTime": types.StringValue(
+							logStreams.LogStreams[0].GetCreationTime().Round(0).String(),
+						),
+						"firstEventTimestamp": types.StringValue(
+							logStreams.LogStreams[0].GetFirstEventTimestamp().Round(0).String(),
+						),
+						"lastEventTimestamp": types.StringValue(
+							logStreams.LogStreams[0].GetLastEventTimestamp().Round(0).String(),
+						),
+						"lastIngestionTime": types.StringValue(
+							logStreams.LogStreams[0].GetLastIngestionTime().Round(0).String(),
+						),
+						"logStreamArn": types.StringValue(logStreams.LogStreams[0].LogStreamArn),
+					}),
+				},
+			),
+		},
+	}
+
+	pathsToTest := []string{
+		"clusters/some_name",
+		"clusters/some_name/stackevents",
+		"clusters/some_name/logstreams",
+	}
+
+	server, err := mockJsonServer(
+		pathsToTest,
+		cluster,
+		stackEvents,
+		logStreams,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer server.Close()
+
+	cfg.Servers = openapi.ServerConfigurations{
+		openapi.ServerConfiguration{
+			URL: server.URL,
+		},
+	}
+	d.client = openapi.NewAPIClient(cfg)
+
+	resp = datasource.ReadResponse{}
+	resp.State = tfsdk.State{
+		Schema: mResp.Schema,
+	}
+	d.Read(ctx, req, &resp)
+
+	if resp.Diagnostics.HasError() {
+		t.Fatalf("Read operation returned unexpected error: %v", resp.Diagnostics)
+	}
+
+	output := ClusterDataSourceModel{}
+	diags := resp.State.Get(ctx, &output)
+	if diags.HasError() {
+		t.Fatalf("Read operation returned unexpected error while retrieving state data: %v", diags)
+	}
+
+	if !reflect.DeepEqual(expectedOutputs[0], output) {
+		t.Fatalf(
+			"Expected output did not match actual output: \nE: %v\nO: %v\n",
+			expectedOutputs[0],
+			output,
+		)
 	}
 }

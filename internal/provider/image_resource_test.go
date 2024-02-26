@@ -25,6 +25,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
+	"github.com/hashicorp/terraform-plugin-go/tftypes"
 )
 
 func TestUnitNewImageResource(t *testing.T) {
@@ -95,34 +96,10 @@ func TestUnitImageResourceSchema(t *testing.T) {
 
 func TestUnitImageResourceConfigure(t *testing.T) {
 	r := ImageResource{}
-	resp := resource.ConfigureResponse{}
-	req := resource.ConfigureRequest{}
 
-	cfg := openapi.NewConfiguration()
-	cfg.Servers = openapi.ServerConfigurations{
-		openapi.ServerConfiguration{
-			URL: "testURL",
-		},
-	}
-
-	awsv4 := awsv4Test()
-
-	req.ProviderData = configData{
-		awsv4:  awsv4,
-		client: openapi.NewAPIClient(cfg),
-	}
-
-	r.Configure(context.TODO(), req, &resp)
-
-	if r.client == nil {
-		t.Fatal("Error client expected to be set.")
-	}
-
-	if r.awsv4 != awsv4 {
-		t.Fatalf("Error matching output expected. O: %#v\nE: %#v",
-			r.awsv4,
-			awsv4,
-		)
+	err := standardResourceConfigureTests(&r)
+	if err != nil {
+		t.Fatal(err)
 	}
 }
 
@@ -159,6 +136,76 @@ func TestUnitImageResourceRead(t *testing.T) {
 	r.Read(ctx, req, &resp)
 	if !resp.Diagnostics.HasError() {
 		t.Fatal("Expecting read operation to return error.")
+	}
+
+	req.State = tfsdk.State{
+		Raw: tftypes.NewValue(
+			tftypes.Object{},
+			map[string]tftypes.Value{
+				"image_id": tftypes.NewValue(
+					tftypes.String,
+					"some_id",
+				),
+				"id": tftypes.NewValue(
+					tftypes.String,
+					"some_id",
+				),
+				"image_configuration": tftypes.NewValue(
+					tftypes.String,
+					"some_config",
+				),
+				"suppress_validators": {},
+				"validation_failure_level": tftypes.NewValue(
+					tftypes.String,
+					string(openapi.VALIDATIONLEVEL_INFO),
+				),
+				"rollback_on_failure": tftypes.NewValue(
+					tftypes.Bool,
+					true,
+				),
+				"region": tftypes.NewValue(
+					tftypes.String,
+					"some_region",
+				),
+				"version": tftypes.NewValue(
+					tftypes.String,
+					"some_version",
+				),
+				"cloudformation_stack_arn": tftypes.NewValue(
+					tftypes.String,
+					"some_stack_arn",
+				),
+				"cloudformation_stack_status": tftypes.NewValue(
+					tftypes.String,
+					string(openapi.CLOUDFORMATIONRESOURCESTATUS_CREATE_COMPLETE),
+				),
+				"image_build_status": tftypes.NewValue(
+					tftypes.String,
+					string(openapi.IMAGEBUILDERIMAGESTATUS_AVAILABLE),
+				),
+				"ami_id": tftypes.NewValue(
+					tftypes.String,
+					"some_id",
+				),
+			},
+		),
+		Schema: mResp.Schema,
+	}
+
+	resp = resource.ReadResponse{}
+	resp.State = tfsdk.State{
+		Schema: mResp.Schema,
+	}
+	r.Read(ctx, req, &resp)
+
+	data := ImageResourceModel{}
+	resp.State.Get(ctx, &data)
+
+	if data.ImageId.String() != `""` {
+		t.Fatal("Expecting image id to be empty.")
+	}
+	if resp.Diagnostics.HasError() {
+		t.Fatal("Expecting read operation to complete without error.")
 	}
 
 	dResp := resource.DeleteResponse{}

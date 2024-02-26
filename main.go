@@ -36,7 +36,6 @@ import (
 // to appropriate values for the compiled binary.
 var (
 	version string = "dev"
-	commit  string = ""
 )
 
 // goreleaser can pass other information to the main package, such as the specific commit
