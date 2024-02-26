@@ -23,7 +23,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/hashicorp/terraform-plugin-log/tflog"
 
 	openapi "github.com/aws-tf/terraform-provider-aws-parallelcluster/internal/provider/openapi"
 )
@@ -78,6 +77,14 @@ type ImageDataSourceModel struct {
 	Region      types.String `tfsdk:"region"`
 	LogStreams  types.List   `tfsdk:"log_streams"`
 	StackEvents types.List   `tfsdk:"stack_events"`
+}
+
+func (d *ImageDataSource) getClient() *openapi.APIClient {
+	return d.client
+}
+
+func (d *ImageDataSource) getAWSv4() openapi.AWSv4 {
+	return d.awsv4
 }
 
 func (d *ImageDataSource) Metadata(
@@ -191,17 +198,29 @@ func (d *ImageDataSource) Read(
 	}
 
 	// Retrieve image configuration
-	s3Resp, err := http.Get(*image.GetImageConfiguration().Url)
-	if err != nil {
-		resp.Diagnostics.AddError("Failed to download image configuration from s3.", err.Error())
+	imageConfiguration := types.StringValue("")
+	if imageConfig, ok := image.GetImageConfigurationOk(); ok {
+		if url, ok := imageConfig.GetUrlOk(); ok {
+			s3Resp, err := http.Get(*url)
+			if err != nil {
+				resp.Diagnostics.AddError(
+					"Failed to download image configuration from s3.",
+					err.Error(),
+				)
+			}
+			if s3Resp != nil {
+				defer s3Resp.Body.Close()
+				configBytes, err := io.ReadAll(s3Resp.Body)
+				if err != nil {
+					resp.Diagnostics.AddError(
+						"Failed to download image configuration from s3.",
+						err.Error(),
+					)
+				}
+				imageConfiguration = types.StringValue(string(configBytes))
+			}
+		}
 	}
-	defer s3Resp.Body.Close()
-	configBytes, err := io.ReadAll(s3Resp.Body)
-	if err != nil {
-		resp.Diagnostics.AddError("Failed to download image configuration from s3.", err.Error())
-	}
-
-	imageConfiguration := types.StringValue(string(configBytes))
 
 	// Populate cloudformation stack tags
 	var cloudformationStackTags types.List
@@ -392,9 +411,6 @@ func (d *ImageDataSource) Read(
 	} else {
 		data.StackEvents = types.ListNull(types.MapType{ElemType: types.StringType})
 	}
-
-	// Documentation: https://terraform.io/plugin/log
-	tflog.Trace(ctx, "read a data source")
 
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)

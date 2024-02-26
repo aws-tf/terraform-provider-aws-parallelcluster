@@ -127,6 +127,14 @@ type ImageResourceModel struct {
 	AmiId types.String `tfsdk:"ami_id"`
 }
 
+func (r *ImageResource) getClient() *openapi.APIClient {
+	return r.client
+}
+
+func (r *ImageResource) getAWSv4() openapi.AWSv4 {
+	return r.awsv4
+}
+
 func (r *ImageResource) Metadata(
 	ctx context.Context,
 	req resource.MetadataRequest,
@@ -347,7 +355,10 @@ func (r *ImageResource) Create(
 	if imageSummary != nil {
 		data.ImageBuildStatus = types.StringValue(string(imageSummary.GetImageBuildStatus()))
 		if imageSummary.ImageBuildStatus == openapi.IMAGEBUILDSTATUS_BUILD_FAILED {
-			resp.Diagnostics.AddError("Image create failed to complete.", "")
+			resp.Diagnostics.AddError(
+				"Image create failed to complete.",
+				fmt.Sprintf("Reason: %v", imageSummary.GetImagebuilderImageStatusReason()),
+			)
 		}
 
 		if imageSummary.Ec2AmiInfo != nil {
@@ -382,7 +393,7 @@ func (r *ImageResource) Read(
 	data.Id = data.ImageId
 	imageSummary, err := r.getImage(reqCtx, data.ImageId.ValueString())
 	if err != nil && err.Error() != failedToFindImageErr {
-		resp.Diagnostics.AddError("Failed to find image.", err.Error())
+		resp.Diagnostics.AddError("Error while retrieving image.", err.Error())
 	}
 
 	if id, ok := imageSummary.GetImageIdOk(); ok {
@@ -391,27 +402,21 @@ func (r *ImageResource) Read(
 	if region, ok := imageSummary.GetRegionOk(); ok {
 		data.Region = types.StringValue(*region)
 	}
-
 	if version, ok := imageSummary.GetVersionOk(); ok {
 		data.Version = types.StringValue(*version)
 	}
-
 	if stackArn, ok := imageSummary.GetCloudformationStackArnOk(); ok {
 		data.CloudformationStackArn = types.StringValue(*stackArn)
 	}
-
 	if stackStatus, ok := imageSummary.GetCloudformationStackStatusOk(); ok {
 		data.CloudformationStackStatus = types.StringValue(string(*stackStatus))
 	}
-
 	if buildStatus, ok := imageSummary.GetImageBuildStatusOk(); ok {
 		data.ImageBuildStatus = types.StringValue(string(*buildStatus))
 	}
-
 	if ec2AmiInfo, ok := imageSummary.GetEc2AmiInfoOk(); ok {
 		data.AmiId = types.StringValue(ec2AmiInfo.GetAmiId())
 	}
-
 	if config, ok := imageSummary.GetImageConfigurationOk(); ok {
 		if url, ok := config.GetUrlOk(); ok {
 			s3Resp, err := http.Get(*url)

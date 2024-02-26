@@ -68,6 +68,14 @@ type ClusterResourceModel struct {
 	Version                   types.String `tfsdk:"version"`
 }
 
+func (r *ClusterResource) getClient() *openapi.APIClient {
+	return r.client
+}
+
+func (r *ClusterResource) getAWSv4() openapi.AWSv4 {
+	return r.awsv4
+}
+
 func (r *ClusterResource) Metadata(
 	ctx context.Context,
 	req resource.MetadataRequest,
@@ -617,7 +625,6 @@ func (r *ClusterResource) ImportState(
 	reqCtx := context.WithValue(context.Background(), openapi.ContextAWSv4, r.awsv4)
 
 	clusterDesc, err := r.getCluster(reqCtx, req.ID)
-
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to find cluster.", err.Error())
 		return
