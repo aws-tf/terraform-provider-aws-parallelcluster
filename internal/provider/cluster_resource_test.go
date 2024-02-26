@@ -95,34 +95,10 @@ func TestUnitClusterResourceSchema(t *testing.T) {
 
 func TestUnitClusterResourceConfigure(t *testing.T) {
 	r := ClusterResource{}
-	resp := resource.ConfigureResponse{}
-	req := resource.ConfigureRequest{}
 
-	cfg := openapi.NewConfiguration()
-	cfg.Servers = openapi.ServerConfigurations{
-		openapi.ServerConfiguration{
-			URL: "testURL",
-		},
-	}
-
-	awsv4 := awsv4Test()
-
-	req.ProviderData = configData{
-		awsv4:  awsv4,
-		client: openapi.NewAPIClient(cfg),
-	}
-
-	r.Configure(context.TODO(), req, &resp)
-
-	if r.client == nil {
-		t.Fatal("Error client expected to be set.")
-	}
-
-	if r.awsv4 != awsv4 {
-		t.Fatalf("Error matching output expected. O: %#v\nE: %#v",
-			r.awsv4,
-			awsv4,
-		)
+	err := standardResourceConfigureTests(&r)
+	if err != nil {
+		t.Fatal(err)
 	}
 }
 

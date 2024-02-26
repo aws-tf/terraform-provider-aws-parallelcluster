@@ -22,9 +22,12 @@ import (
 	"testing"
 
 	openapi "github.com/aws-tf/terraform-provider-aws-parallelcluster/internal/provider/openapi"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
+	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-go/tftypes"
 )
 
 func TestUnitNewOfficialImageDataSource(t *testing.T) {
@@ -95,34 +98,10 @@ func TestUnitOfficialImageDataSourceSchema(t *testing.T) {
 
 func TestUnitOfficialImageDataSourceConfigure(t *testing.T) {
 	d := OfficialImageDataSource{}
-	resp := datasource.ConfigureResponse{}
-	req := datasource.ConfigureRequest{}
 
-	cfg := openapi.NewConfiguration()
-	cfg.Servers = openapi.ServerConfigurations{
-		openapi.ServerConfiguration{
-			URL: "testURL",
-		},
-	}
-
-	awsv4 := awsv4Test()
-
-	req.ProviderData = configData{
-		awsv4:  awsv4,
-		client: openapi.NewAPIClient(cfg),
-	}
-
-	d.Configure(context.TODO(), req, &resp)
-
-	if d.client == nil {
-		t.Fatal("Error client expected to be set.")
-	}
-
-	if d.awsv4 != awsv4 {
-		t.Fatalf("Error matching output expected. O: %#v\nE: %#v",
-			d.awsv4,
-			awsv4,
-		)
+	err := standardDataConfigureTests(&d)
+	if err != nil {
+		t.Fatal(err)
 	}
 }
 
@@ -132,6 +111,7 @@ func TestUnitOfficialImageDataSourceRead(t *testing.T) {
 	req := datasource.ReadRequest{}
 	mResp := datasource.SchemaResponse{}
 	mReq := datasource.SchemaRequest{}
+	ctx := context.TODO()
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
@@ -149,7 +129,7 @@ func TestUnitOfficialImageDataSourceRead(t *testing.T) {
 		client: openapi.NewAPIClient(cfg),
 	}
 
-	d.Schema(context.TODO(), mReq, &mResp)
+	d.Schema(ctx, mReq, &mResp)
 
 	req.Config = tfsdk.Config{
 		Schema: mResp.Schema,
@@ -159,5 +139,97 @@ func TestUnitOfficialImageDataSourceRead(t *testing.T) {
 
 	if !resp.Diagnostics.HasError() {
 		t.Fatal("Expecting read operation to return error.")
+	}
+
+	req.Config = tfsdk.Config{
+		Raw: tftypes.NewValue(
+			tftypes.Object{},
+			map[string]tftypes.Value{
+				"architecture": tftypes.NewValue(
+					tftypes.String,
+					"some_architecture",
+				),
+				"os": tftypes.NewValue(
+					tftypes.String,
+					"some_os",
+				),
+				"region": tftypes.NewValue(
+					tftypes.String,
+					"some_region",
+				),
+				"official_images": {},
+			},
+		),
+		Schema: mResp.Schema,
+	}
+
+	resp = datasource.ReadResponse{}
+	resp.State = tfsdk.State{
+		Schema: mResp.Schema,
+	}
+	d.Read(ctx, req, &resp)
+
+	if !resp.Diagnostics.HasError() {
+		t.Fatal("Expecting read operation to return error.")
+	}
+
+	officialImageList := openapi.ListOfficialImagesResponseContent{
+		Images: []openapi.AmiInfo{{
+			Architecture: "some_architecture",
+			AmiId:        "some_id",
+			Name:         "some_name",
+			Os:           "some_os",
+			Version:      "some_version",
+		}},
+	}
+
+	server, err := mockJsonServer([]string{"images/official"}, officialImageList)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	cfg = openapi.NewConfiguration()
+	cfg.Servers = openapi.ServerConfigurations{
+		openapi.ServerConfiguration{
+			URL: server.URL,
+		},
+	}
+	d.client = openapi.NewAPIClient(cfg)
+
+	resp = datasource.ReadResponse{}
+	resp.State = tfsdk.State{
+		Schema: mResp.Schema,
+	}
+	d.Read(ctx, req, &resp)
+
+	if resp.Diagnostics.HasError() {
+		t.Fatalf("Unexpected error during read operation: %v", resp.Diagnostics.Errors())
+	}
+
+	expectedOutput := OfficialImageDataSourceModel{
+		Architecture: types.StringValue("some_architecture"),
+		Os:           types.StringValue("some_os"),
+		Region:       types.StringValue("some_region"),
+		OfficialImages: types.ListValueMust(
+			types.MapType{ElemType: types.StringType},
+			[]attr.Value{types.MapValueMust(types.StringType, map[string]attr.Value{
+				"architecture": types.StringValue(officialImageList.Images[0].Architecture),
+				"amiId":        types.StringValue(officialImageList.Images[0].AmiId),
+				"name":         types.StringValue(officialImageList.Images[0].Name),
+				"os":           types.StringValue(officialImageList.Images[0].Os),
+				"version":      types.StringValue(officialImageList.Images[0].Version),
+			})},
+		),
+	}
+
+	var output OfficialImageDataSourceModel
+	resp.State.Get(ctx, &output)
+
+	if !reflect.DeepEqual(output, expectedOutput) {
+		t.Fatalf(
+			"Expected output did not match actual output: \nO: %v\nE: %v\n",
+			output,
+			expectedOutput,
+		)
 	}
 }

@@ -48,6 +48,14 @@ type ComputeFleetDataSourceModel struct {
 	LastStatusUpdateTime types.String `tfsdk:"last_status_update_time"`
 }
 
+func (d *ComputeFleetDataSource) getClient() *openapi.APIClient {
+	return d.client
+}
+
+func (d *ComputeFleetDataSource) getAWSv4() openapi.AWSv4 {
+	return d.awsv4
+}
+
 func (d *ComputeFleetDataSource) Metadata(
 	ctx context.Context,
 	req datasource.MetadataRequest,
