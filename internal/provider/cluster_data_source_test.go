@@ -161,7 +161,6 @@ func TestUnitClusterDataSourceRead(t *testing.T) {
 					tftypes.String,
 					"some_region",
 				),
-
 				"stack_events": {},
 			},
 		),
@@ -351,18 +350,21 @@ func TestUnitClusterDataSourceRead(t *testing.T) {
 		},
 	}
 
-	pathsToTest := []string{
-		"clusters/some_name",
-		"clusters/some_name/stackevents",
-		"clusters/some_name/logstreams",
+	mocks := []mockCfg{
+		{
+			path: "clusters/some_name",
+			out:  cluster,
+		},
+		{
+			path: "clusters/some_name/stackevents",
+			out:  stackEvents,
+		},
+		{
+			path: "clusters/some_name/logstreams",
+			out:  logStreams,
+		},
 	}
-
-	server, err := mockJsonServer(
-		pathsToTest,
-		cluster,
-		stackEvents,
-		logStreams,
-	)
+	server, err := mockJsonServer(mocks...)
 	if err != nil {
 		t.Fatal(err)
 	}

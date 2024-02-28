@@ -113,9 +113,117 @@ func TestUnitComputeFleetStatusResourceRead(t *testing.T) {
 	mReq := resource.SchemaRequest{}
 	ctx := context.TODO()
 
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusNotFound)
-	}))
+	serverNotFound := httptest.NewServer(
+		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusNotFound)
+		}),
+	)
+
+	cfgNotFound := openapi.NewConfiguration()
+	cfgNotFound.Servers = openapi.ServerConfigurations{
+		openapi.ServerConfiguration{
+			URL: serverNotFound.URL,
+		},
+	}
+
+	r := ComputeFleetStatusResource{
+		awsv4:  awsv4Test(),
+		client: openapi.NewAPIClient(cfgNotFound),
+	}
+
+	r.Schema(ctx, mReq, &mResp)
+	tfState := tfsdk.State{
+		Schema: mResp.Schema,
+	}
+	tfPlan := tfsdk.Plan{
+		Schema: mResp.Schema,
+	}
+
+	req.State = tfState
+	r.Read(ctx, req, &resp)
+	if !resp.Diagnostics.HasError() {
+		t.Fatal("Expecting read operation to return error.")
+	}
+
+	tfRawValue := tftypes.NewValue(
+		tftypes.Object{},
+		map[string]tftypes.Value{
+			"id": tftypes.NewValue(
+				tftypes.String,
+				"some_name",
+			),
+			"cluster_name": tftypes.NewValue(
+				tftypes.String,
+				"some_name",
+			),
+			"status_request": tftypes.NewValue(
+				tftypes.String,
+				string(openapi.COMPUTEFLEETSTATUS_DISABLED),
+			),
+			"status": {},
+			"region": tftypes.NewValue(
+				tftypes.String,
+				"some_region",
+			),
+			"last_status_update_time": tftypes.NewValue(
+				tftypes.String,
+				"some_time",
+			),
+		},
+	)
+	tfStateRaw := tfsdk.State{
+		Raw:    tfRawValue,
+		Schema: mResp.Schema,
+	}
+	tfPlanRaw := tfsdk.Plan{
+		Raw:    tfRawValue,
+		Schema: mResp.Schema,
+	}
+
+	req.State = tfStateRaw
+
+	someTime := time.Now()
+	computeFleet := openapi.DescribeComputeFleetResponseContent{
+		Status:                openapi.COMPUTEFLEETSTATUS_ENABLED,
+		LastStatusUpdatedTime: &someTime,
+	}
+	createResponse := openapi.UpdateComputeFleetResponseContent{
+		Status:                openapi.COMPUTEFLEETSTATUS_ENABLED,
+		LastStatusUpdatedTime: &someTime,
+	}
+
+	mocks := []mockCfg{
+		{
+			path: "clusters/some_name/computefleet",
+			out:  computeFleet,
+		},
+		{
+			path:   "clusters/some_name/computefleet",
+			out:    createResponse,
+			method: http.MethodPatch,
+		},
+	}
+	server, err := mockJsonServer(mocks...)
+	if err != nil {
+		t.Fatal(err)
+	}
+	expectedOutput := ComputeFleetStatusResourceModel{
+		Id:            types.StringValue("some_name"),
+		ClusterName:   types.StringValue("some_name"),
+		Region:        types.StringValue("some_region"),
+		Status:        types.StringValue(string(computeFleet.Status)),
+		StatusRequest: types.StringValue(string(openapi.COMPUTEFLEETSTATUS_DISABLED)),
+		LastStatusUpdateTime: types.StringValue(
+			computeFleet.LastStatusUpdatedTime.Round(0).String(),
+		),
+	}
+
+	resp = resource.ReadResponse{}
+	resp.State = tfState
+	r.Read(ctx, req, &resp)
+	if resp.Diagnostics.WarningsCount() == 0 {
+		t.Fatal("Expecting read operation to return warning.")
+	}
 
 	cfg := openapi.NewConfiguration()
 	cfg.Servers = openapi.ServerConfigurations{
@@ -123,168 +231,131 @@ func TestUnitComputeFleetStatusResourceRead(t *testing.T) {
 			URL: server.URL,
 		},
 	}
+	r.client = openapi.NewAPIClient(cfg)
 
-	r := ComputeFleetStatusResource{
-		awsv4:  awsv4Test(),
-		client: openapi.NewAPIClient(cfg),
-	}
-
-	r.Schema(ctx, mReq, &mResp)
-
-	req.State = tfsdk.State{
-		Schema: mResp.Schema,
-	}
-
+	resp = resource.ReadResponse{}
+	resp.State = tfState
 	r.Read(ctx, req, &resp)
-	if !resp.Diagnostics.HasError() {
-		t.Fatal("Expecting read operation to return error.")
+
+	output := ComputeFleetStatusResourceModel{}
+	resp.State.Get(ctx, &output)
+
+	if resp.Diagnostics.HasError() {
+		t.Fatalf("Read operation returned unexpected error: %v", resp.Diagnostics)
 	}
 
-	req.State = tfsdk.State{
-		Raw: tftypes.NewValue(
-			tftypes.Object{},
-			map[string]tftypes.Value{
-				"id": tftypes.NewValue(
-					tftypes.String,
-					"some_id",
-				),
-				"cluster_name": tftypes.NewValue(
-					tftypes.String,
-					"some_name",
-				),
-				"status_request": {},
-				"status":         {},
-				"region": tftypes.NewValue(
-					tftypes.String,
-					"some_region",
-				),
-				"last_status_update_time": tftypes.NewValue(
-					tftypes.String,
-					"some_time",
-				),
-			},
-		),
-		Schema: mResp.Schema,
+	if !reflect.DeepEqual(output, expectedOutput) {
+		t.Fatalf(
+			"Epected output did not match actual output: \nO:%v\nE:%v\n",
+			output,
+			expectedOutput,
+		)
 	}
 
-	someTime := time.Now()
-	emptyFleet := openapi.DescribeComputeFleetResponseContent{}
-	computeFleet := openapi.DescribeComputeFleetResponseContent{
-		Status:                openapi.COMPUTEFLEETSTATUS_ENABLED,
-		LastStatusUpdatedTime: &someTime,
-	}
-
-	tests := map[string]openapi.DescribeComputeFleetResponseContent{
-		"invalid/path":                    emptyFleet,
-		"clusters/some_name/computefleet": computeFleet,
-	}
-
-	expectedOutputs := map[string]ComputeFleetStatusResourceModel{
-		"invalid/path": {
-			Id:          types.StringValue("some_id"),
-			ClusterName: types.StringValue("some_name"),
-			Region:      types.StringValue("some_region"),
-			Status:      types.StringValue(""),
-			LastStatusUpdateTime: types.StringValue(
-				emptyFleet.GetLastStatusUpdatedTime().String(),
-			),
-		},
-		"clusters/some_name/computefleet": {
-			Id:          types.StringValue("some_id"),
-			ClusterName: types.StringValue("some_name"),
-			Region:      types.StringValue("some_region"),
-			Status:      types.StringValue(string(computeFleet.Status)),
-			LastStatusUpdateTime: types.StringValue(
-				computeFleet.LastStatusUpdatedTime.Round(0).String(),
-			),
-		},
-	}
-	for k, test := range tests {
-		server, err := mockJsonServer([]string{k}, test)
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer server.Close()
-
-		cfg.Servers = openapi.ServerConfigurations{
-			openapi.ServerConfiguration{
-				URL: server.URL,
-			},
-		}
-		r.client = openapi.NewAPIClient(cfg)
-
-		resp = resource.ReadResponse{}
-		resp.State = tfsdk.State{
-			Schema: mResp.Schema,
-		}
-		r.Read(ctx, req, &resp)
-
-		output := ComputeFleetStatusResourceModel{}
-		resp.State.Get(ctx, &output)
-
-		if resp.Diagnostics.HasError() {
-			t.Fatalf("Read operation returned unexpected error: %v", resp.Diagnostics)
-		}
-
-		if !reflect.DeepEqual(output, expectedOutputs[k]) {
-			t.Fatalf(
-				"Epected output did not match actual output: \nO:%v\nE:%v\n",
-				output,
-				expectedOutputs[k],
-			)
-		}
-	}
-
+	// Delete Testing
+	r.client = openapi.NewAPIClient(cfgNotFound)
 	dResp := resource.DeleteResponse{}
 	dReq := resource.DeleteRequest{}
 
-	dReq.State = tfsdk.State{
-		Schema: mResp.Schema,
-	}
-
+	dReq.State = tfState
 	r.Delete(ctx, dReq, &dResp)
 
 	if !dResp.Diagnostics.HasError() {
 		t.Fatal("Expecting delete operation to return error.")
 	}
 
+	// Create Testing
 	cResp := resource.CreateResponse{}
 	cReq := resource.CreateRequest{}
 
-	cReq.Plan = tfsdk.Plan{
-		Schema: mResp.Schema,
-	}
-
+	cReq.Plan = tfPlan
 	r.Create(ctx, cReq, &cResp)
 
 	if !cResp.Diagnostics.HasError() {
 		t.Fatal("Expecting create operation to return error.")
 	}
 
+	cResp = resource.CreateResponse{
+		State: tfState,
+	}
+	r.client = openapi.NewAPIClient(cfgNotFound)
+	cReq.Plan = tfPlanRaw
+	r.Create(ctx, cReq, &cResp)
+	if !cResp.Diagnostics.HasError() {
+		t.Fatal("Expecting create operation to return error.")
+	}
+
+	cResp = resource.CreateResponse{
+		State: tfState,
+	}
+	r.client = openapi.NewAPIClient(cfg)
+	cReq.Plan = tfPlanRaw
+	r.Create(ctx, cReq, &cResp)
+
+	output = ComputeFleetStatusResourceModel{}
+	cResp.State.Get(ctx, &output)
+
+	if cResp.Diagnostics.HasError() {
+		t.Fatalf("Create operation returned unexpected error: %v", resp.Diagnostics)
+	}
+
+	if !reflect.DeepEqual(output, expectedOutput) {
+		t.Fatalf(
+			"Epected output did not match actual output: \nO:%v\nE:%v\n",
+			output,
+			expectedOutput,
+		)
+	}
+
+	// Update Testing
 	uResp := resource.UpdateResponse{}
 	uReq := resource.UpdateRequest{}
 
-	uReq.Plan = tfsdk.Plan{
-		Schema: mResp.Schema,
-	}
-
-	uReq.State = tfsdk.State{
-		Schema: mResp.Schema,
-	}
-
+	uReq.Plan = tfPlan
+	uReq.State = tfState
 	r.Update(ctx, uReq, &uResp)
 
 	if !uResp.Diagnostics.HasError() {
 		t.Fatal("Expecting update operation to return error.")
 	}
 
+	uResp = resource.UpdateResponse{
+		State: tfState,
+	}
+	r.client = openapi.NewAPIClient(cfgNotFound)
+	uReq.Plan = tfPlanRaw
+	r.Update(ctx, uReq, &uResp)
+	if !uResp.Diagnostics.HasError() {
+		t.Fatal("Expecting update operation to return error.")
+	}
+
+	uResp = resource.UpdateResponse{
+		State: tfState,
+	}
+	r.client = openapi.NewAPIClient(cfg)
+	uReq.Plan = tfPlanRaw
+	r.Update(ctx, uReq, &uResp)
+
+	output = ComputeFleetStatusResourceModel{}
+	uResp.State.Get(ctx, &output)
+
+	if uResp.Diagnostics.HasError() {
+		t.Fatalf("Create operation returned unexpected error: %v", resp.Diagnostics)
+	}
+
+	if !reflect.DeepEqual(output, expectedOutput) {
+		t.Fatalf(
+			"Epected output did not match actual output: \nO:%v\nE:%v\n",
+			output,
+			expectedOutput,
+		)
+	}
+
+	// Import Testing
 	iResp := resource.ImportStateResponse{}
 	iReq := resource.ImportStateRequest{ID: "test"}
 
-	iResp.State = tfsdk.State{
-		Schema: mResp.Schema,
-	}
-
+	iResp.State = tfState
 	r.ImportState(ctx, iReq, &iResp)
 
 	if !iResp.Diagnostics.HasError() {
