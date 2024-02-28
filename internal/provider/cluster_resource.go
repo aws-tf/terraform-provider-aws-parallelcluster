@@ -356,7 +356,7 @@ func (r *ClusterResource) Create(
 		return
 	}
 
-	createClusterRequestContent := *openapi.NewCreateClusterRequestContent(data.ClusterName.ValueString(), data.ClusterConfiguration.ValueString()) // CreateClusterRequestContent |
+	createClusterRequestContent := *openapi.NewCreateClusterRequestContent(data.ClusterName.ValueString(), data.ClusterConfiguration.ValueString())
 
 	reqCtx := context.WithValue(context.Background(), openapi.ContextAWSv4, r.awsv4)
 

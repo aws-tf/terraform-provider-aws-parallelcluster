@@ -24,7 +24,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/hashicorp/terraform-plugin-log/tflog"
 
 	openapi "github.com/aws-tf/terraform-provider-aws-parallelcluster/internal/provider/openapi"
 )
@@ -221,10 +220,6 @@ func (r *ComputeFleetStatusResource) Create(
 			respContent.GetLastStatusUpdatedTime().String(),
 		)
 	}
-
-	// Write logs using the tflog package
-	// Documentation: https://terraform.io/plugin/log
-	tflog.Trace(ctx, "created a resource")
 
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
