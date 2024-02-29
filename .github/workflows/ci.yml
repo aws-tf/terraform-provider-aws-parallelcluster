@@ -6,23 +6,6 @@ on:
   - pull_request
 
 jobs:
-  code-checks:
-    name: Code Checks
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        name:
-          - Go 1.21.5 Lint
-        include:
-          - name: Go 1.21.5 Lint
-            go: 1.21.5
-    steps:
-      - uses: actions/checkout@v4
-      - name: Setup Go
-        uses: actions/setup-go@v4
-        with:
-          go-version: ${{ matrix.go }}
   unit-tests:
     name: Unit Tests
     runs-on: ubuntu-latest
