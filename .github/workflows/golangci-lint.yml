@@ -10,13 +10,24 @@ permissions:
 
 jobs:
   golangci:
+    strategy:
+      fail-fast: false
+      matrix:
+        name:
+          - Code Checks with Go 1.22.0
+          - Code Checks with Go 1.21.7
+        include:
+          - name: Code Checks with Go 1.22.0
+            go: 1.22.0
+          - name: Code Checks with Go 1.21.7
+            go: 1.21.7
     name: lint
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-go@v4
         with:
-          go-version: '1.21'
+          go-version: ${{ matrix.go }} 
           cache: false
       # See: https://github.com/golangci/golangci-lint
       # Configuration: https://golangci-lint.run/usage/configuration/
@@ -26,5 +37,5 @@ jobs:
           # Require: The version of golangci-lint to use.
           # When `install-mode` is `binary` (default) the value can be v1.2 or v1.2.3 or `latest` to use the latest version.
           # When `install-mode` is `goinstall` the value can be v1.2.3, `latest`, or the hash of a commit.
-          version: v1.54
+          version: v1.56.2
           args: --timeout=30m
