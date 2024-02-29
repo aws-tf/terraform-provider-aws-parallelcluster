@@ -24,14 +24,14 @@ jobs:
       fail-fast: false
       matrix:
         name:
-          - Unit Tests with Go 1.21.5 and Terraform 1.6.6
-          - Unit Tests with Go 1.20.1 and Terraform 1.5.7
+          - Unit Tests with Go 1.22.0 and Terraform 1.6.6
+          - Unit Tests with Go 1.21.7 and Terraform 1.5.7
         include:
-          - name: Unit Tests with Go 1.21.5 and Terraform 1.6.6
-            go: 1.21.5
+          - name: Unit Tests with Go 1.22.0 and Terraform 1.6.6
+            go: 1.22.0
             terraform: 1.6.6
-          - name: Unit Tests with Go 1.20.1 and Terraform 1.5.7
-            go: 1.20.1
+          - name: Unit Tests with Go 1.21.7 and Terraform 1.5.7
+            go: 1.21.7
             terraform: 1.5.7
     steps:
         # Setup 
