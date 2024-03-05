@@ -10,6 +10,10 @@ There is also an active AWS HPC forum which may be helpful: https://repost.aws/t
 
 See [CONTRIBUTING](CONTRIBUTING.md#security-issue-notifications) for more information.
 
+## Go Versions
+
+This project aims to stay up-to-date with the two most recent releases of go following the [go release policy](https://go.dev/doc/devel/release#policy).
+
 ## License
 
 This project is licensed under the Apache-2.0 License.

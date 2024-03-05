@@ -1,7 +1,7 @@
 # DEVELOPMENT
 
 ## Requirements
-* go 1.21.5+: https://go.dev/
+* go 1.21.0+: https://go.dev/
 * Terraform 1.8.0+: https://developer.hashicorp.com/Terraform/install?product_intent=Terraform
 * pre-commit 3.6.0+: https://pre-commit.com/
 * git-secrets 1.3.0+: https://github.com/awslabs/git-secrets
