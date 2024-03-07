@@ -63,10 +63,10 @@ Read-Only:
 Read-Only:
 
 - `address` (String)
-- `healthyNodes` (String)
+- `healthyNodes` (Number)
 - `scheme` (String)
 - `status` (String)
-- `unhealthyNodes` (String)
+- `unhealthyNodes` (Number)
 
 
 <a id="nestedobjatt--cluster--scheduler"></a>
