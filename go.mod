@@ -4,7 +4,7 @@ go 1.21
 
 require (
 	github.com/aws-tf/terraform-provider-aws-parallelcluster/internal/provider/openapi v0.0.0-00010101000000-000000000000
-	github.com/aws/aws-sdk-go-v2 v1.25.2
+	github.com/aws/aws-sdk-go-v2 v1.26.0
 	github.com/aws/aws-sdk-go-v2/config v1.27.4
 	github.com/aws/aws-sdk-go-v2/service/apigateway v1.23.2
 	github.com/aws/aws-sdk-go-v2/service/cloudformation v1.43.0
