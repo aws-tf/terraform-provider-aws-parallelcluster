@@ -1,0 +1,77 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Infrastructure to make GitHub able to operate on the account.
+
+Parameters:
+  Organization:
+    Description: Name of the GitHub organization that owns the repositories.
+    Type: String
+    Default: aws-tf
+  ProviderRepository:
+    Description: Name of the GitHub repository for the provider.
+    Type: String
+    Default: terraform-provider-aws-parallelcluster
+  ModuleRepository:
+    Description: Name of the GitHub repository for the module.
+    Type: String
+    Default: terraform-aws-parallelcluster
+    
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: GitHub
+        Parameters:
+          - Organization
+          - ProviderRepository
+          - ModuleRepository
+
+Resources:
+
+  GithubOidc:
+    Type: AWS::IAM::OIDCProvider
+    Properties:
+      Url: https://token.actions.githubusercontent.com
+      ClientIdList:
+        - sts.amazonaws.com
+      ThumbprintList:
+        - 6938fd4d98bab03faadb97b34396831e3780aea1
+
+  ProviderE2ETestExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      Description: Role used by GitHub to run end-to-end tests for the provider.
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Action: sts:AssumeRoleWithWebIdentity
+            Principal:
+              Federated: !Ref GithubOidc
+            Condition:
+              StringEquals:
+                token.actions.githubusercontent.com:aud: sts.amazonaws.com
+                token.actions.githubusercontent.com:sub: !Sub repo:${Organization}/${ProviderRepository}:ref:refs/heads/main
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/ReadOnlyAccess  # TODO Add all the necessary permissions to launch e2e tests.
+
+  ModuleE2ETestExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      Description: Role used by GitHub to run end-to-end tests for the module.
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Action: sts:AssumeRoleWithWebIdentity
+            Principal:
+              Federated: !Ref GithubOidc
+            Condition:
+              StringEquals:
+                token.actions.githubusercontent.com:aud: sts.amazonaws.com
+                token.actions.githubusercontent.com:sub: !Sub repo:${Organization}/${ModuleRepository}:ref:refs/heads/main
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/ReadOnlyAccess  # TODO Add all the necessary permissions to launch e2e tests.
+
+Outputs:
+  ProviderE2ETestExecutionRole:
+    Value: !GetAtt ProviderE2ETestExecutionRole.Arn
+  ModuleE2ETestExecutionRole:
+    Value: !GetAtt ModuleE2ETestExecutionRole.Arn
