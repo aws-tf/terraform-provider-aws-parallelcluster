@@ -16,13 +16,15 @@ git secrets --register-aws
 
 ## Developing the Provider
 
-`./internal/provider/openapi` contains a generated ParallelCluster go client. It should be regenerated with new releases of ParallelCluster. It can be generated with:
+`./internal/provider/openapi` contains a generated ParallelCluster go client. 
+It should be regenerated when a new release of ParallelCluster introduces changes to the OpenAPI spec file. 
+It can be generated with:
 
 ```shell
 openapi-generator-cli generate -g go -i path-to-openapi-pcluster-spec -o internal/provider/openapi -p 'structPrefix=true,withAWSV4Signature=true,enumClassPrefix=true'
 ```
 
-The pcluster spec file can be retrieved from https://github.com/aws/aws-ParallelCluster/tree/develop/api/spec/openapi.
+The pcluster spec file can be retrieved from https://github.com/aws/aws-parallelcluster/tree/develop/api/spec/openapi.
 
 See https://openapi-generator.tech/docs/installation/ for openapi generator installation instructions.
 
