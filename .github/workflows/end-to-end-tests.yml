@@ -1,9 +1,9 @@
 # This workflow validates PRs and pushes with code checks, unit tests and end-to-end tests.
-name: End To End Tests 
+name: End To End Tests
 
 on:
   push:
-    branches: 
+    branches:
       - main
 jobs:
   end-to-end-tests:
@@ -36,6 +36,7 @@ jobs:
       - env:
           TF_ACC: "1"
           TEST_REGION: "us-east-1"
+          TEST_AVAILABILITY_ZONE: "us-east-1a"
           TEST_CLUSTER_NAME: "test-cluster"
           TEST_ROLE: ${{ secrets.ACTION_E2E_TESTS_ROLE }}
           TEST_ENDPOINT: ${{ secrets.ACTION_E2E_TESTS_ENDPOINT }}
