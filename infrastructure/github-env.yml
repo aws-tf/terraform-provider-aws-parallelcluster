@@ -14,7 +14,7 @@ Parameters:
     Description: Name of the GitHub repository for the module.
     Type: String
     Default: terraform-aws-parallelcluster
-    
+
 Metadata:
   AWS::CloudFormation::Interface:
     ParameterGroups:
@@ -52,6 +52,7 @@ Resources:
                 token.actions.githubusercontent.com:sub: !Sub repo:${Organization}/${ProviderRepository}:ref:refs/heads/main
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/ReadOnlyAccess  # TODO Add all the necessary permissions to launch e2e tests.
+      MaxSessionDuration: 7200
 
   ModuleE2ETestExecutionRole:
     Type: AWS::IAM::Role
@@ -69,6 +70,7 @@ Resources:
                 token.actions.githubusercontent.com:sub: !Sub repo:${Organization}/${ModuleRepository}:ref:refs/heads/main
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/ReadOnlyAccess  # TODO Add all the necessary permissions to launch e2e tests.
+      MaxSessionDuration: 7200
 
 Outputs:
   ProviderE2ETestExecutionRole:
