@@ -37,7 +37,7 @@ jobs:
           TF_ACC: "1"
           TEST_REGION: "us-east-1"
           TEST_AVAILABILITY_ZONE: "us-east-1a"
-          TEST_CLUSTER_NAME: "test-cluster"
+          TEST_CLUSTER_NAME: "test-cluster-github"
           TEST_ROLE: ${{ secrets.ACTION_E2E_TESTS_ROLE }}
           TEST_ENDPOINT: ${{ secrets.ACTION_E2E_TESTS_ENDPOINT }}
         run: go test ./... -v -run="^TestEnd2End" -timeout 60m
