@@ -38,7 +38,7 @@ const (
 )
 
 func TestEnd2EndCluster(t *testing.T) {
-	clusterName := "test-cluster"
+	clusterName := defaultClusterName
 
 	configVariables := config.Variables{
 		"cluster_name": config.StringVariable(clusterName),
@@ -94,6 +94,7 @@ func TestEnd2EndCluster(t *testing.T) {
 	if name, ok := os.LookupEnv("TEST_CLUSTER_NAME"); ok {
 		configVariables["cluster_name"] = config.StringVariable(name)
 		configUpdateVariables["cluster_name"] = config.StringVariable(name)
+		clusterName = name
 	}
 
 	t.Parallel()
