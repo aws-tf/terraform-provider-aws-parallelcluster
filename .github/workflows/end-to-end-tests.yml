@@ -5,6 +5,11 @@ on:
   push:
     branches:
       - main
+
+permissions:
+  id-token: write
+  contents: read
+
 jobs:
   end-to-end-tests:
     name: End To End Tests
@@ -33,6 +38,12 @@ jobs:
         with:
           terraform_version: ${{ matrix.terraform }}
           terraform_wrapper: false
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: us-east-1
+          role-to-assume: ${{ secrets.ACTION_E2E_TESTS_ROLE }}
+          role-session-name: GitHub_TerraformProviderAwsParallelCluster_End2EndTests
       - env:
           TF_ACC: "1"
           TEST_REGION: "us-east-1"
