@@ -43,7 +43,7 @@ After the go client is regenerated unit and End-to-End tests should be run (See 
 
 The provider can be installed locally for testing with the `install` target. The `VERSION` environment is used to determine the install path. To increment the version for local installs you could use the following:
 
-`make install VERSION=3.9.0-2`
+`make install VERSION=1.0.0`
 
 In order to use the local provider, a configuration block like the following may be used.
 
@@ -52,7 +52,7 @@ terraform {
   required_providers {
     pcluster = {
       source  = "Terraform.local/local/pcluster"
-      version = "~> 3.9.0-1"
+      version = "1.0.0"
     }
   }
 }
@@ -125,7 +125,7 @@ This Github workflow expects the following secrets:
 - `GPG_SECRET_KEY` This secret GPG should be exported with the `--armor` flag and will need to match the public key pushed to the terraform registry (see below)
 - `PASSPHRASE` The passphrase of the secret GPG key
 
-NOTE: A version is of the form `v3.9.0`, if a `-` delimiter exists (ie. `v3.9.0-1`) terraform will consider it a prerelease and will not upgrade to it unless its explicitly defined in the configuration.
+NOTE: A version is of the form `vX.Y.Z`, if a `-` delimiter exists (ie. `v1.2.3-alpha`) terraform will consider it a prerelease and will not upgrade to it unless its explicitly defined in the configuration.
 
 See https://developer.hashicorp.com/terraform/registry/providers/publishing#creating-a-github-release for more information.
 
