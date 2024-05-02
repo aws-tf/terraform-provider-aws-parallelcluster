@@ -1,7 +1,7 @@
 default: build
 
-ifndef VERSION 
-VERSION = 3.9.0-1
+ifndef VERSION
+VERSION = 1.0.0
 endif
 
 install_path = ~/.terraform.d/plugins/terraform.local/local/pcluster/$(VERSION)
@@ -49,7 +49,7 @@ uninstall_linux_amd64:
 
 uninstall: uninstall_darwin_arm64 uninstall_darwin_amd64 uninstall_windows_amd64 uninstall_linux_amd64
 
-# Clean 
+# Clean
 clean:
 	rm -rf build/*
 
