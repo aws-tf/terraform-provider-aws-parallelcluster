@@ -51,7 +51,7 @@ In order to use the local provider, a configuration block like the following may
 terraform {
   required_providers {
     pcluster = {
-      source  = "Terraform.local/local/pcluster"
+      source  = "terraform.local/local/pcluster"
       version = "1.0.0"
     }
   }
