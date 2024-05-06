@@ -51,7 +51,7 @@ Resources:
                 token.actions.githubusercontent.com:aud: sts.amazonaws.com
                 token.actions.githubusercontent.com:sub: !Sub repo:${Organization}/${ProviderRepository}:ref:refs/heads/main
       ManagedPolicyArns:
-        - arn:aws:iam::aws:policy/ReadOnlyAccess  # TODO Add all the necessary permissions to launch e2e tests.
+        - !Ref E2ETestExecutionPolicy
       MaxSessionDuration: 7200
 
   ModuleE2ETestExecutionRole:
@@ -69,8 +69,39 @@ Resources:
                 token.actions.githubusercontent.com:aud: sts.amazonaws.com
                 token.actions.githubusercontent.com:sub: !Sub repo:${Organization}/${ModuleRepository}:ref:refs/heads/main
       ManagedPolicyArns:
-        - arn:aws:iam::aws:policy/ReadOnlyAccess  # TODO Add all the necessary permissions to launch e2e tests.
+        - !Ref E2ETestExecutionPolicy
       MaxSessionDuration: 7200
+
+  E2ETestExecutionPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      Description: Permissions to run end-to-end tests.
+      ManagedPolicyName: E2ETestExecutionPolicy
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action: sts:AssumeRole
+            Resource: !Sub arn:aws:iam::${AWS::AccountId}:role/PCAPIUserRole-*
+            Sid: AssumePCAPIUserRole
+          - Effect: Allow
+            Action:
+              - ec2:DescribeVpcs
+              - ec2:DescribeVpcAttribute
+              - ec2:DescribeSubnets
+              - ec2:DescribeSecurityGroups
+              - ec2:AuthorizeSecurityGroupEgress
+              - ec2:AuthorizeSecurityGroupIngress
+              - ec2:RevokeSecurityGroupIngress
+              - ec2:RevokeSecurityGroupEgress
+              - ec2:DescribeSecurityGroupRules
+            Resource: '*'
+            Sid: EC2
+          - Effect: Allow
+            Action:
+              - cloudformation:DescribeStacks
+            Resource: !Sub arn:aws:cloudformation:*:${AWS::AccountId}:stack/*
+            Sid: CloudFormation
 
 Outputs:
   ProviderE2ETestExecutionRole:
