@@ -54,5 +54,6 @@ jobs:
           TEST_PCAPI_STACK_NAME: "ParallelCluster"
           TEST_USE_USER_ROLE: "true"
           TEST_CLUSTER_NAME: "test-cluster-github"
+          TEST_IMAGE_NAME: "test-image-github"
         run: go test ./... -v -run="^TestEnd2End" -timeout 60m
         timeout-minutes: 65
