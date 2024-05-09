@@ -21,9 +21,14 @@
 # TEST_CLUSTER_NAME:              [Cluster name];
 #                                 This is the name of the cluster that tests will create.
 #                                 Default is test-cluster.
+#
+# TEST_IMAGE_NAME:                [Image name];
+#                                 This is the name of the AMI that tests will create.
+#                                 Default is test-image.
 
 export TEST_REGION="us-east-1"
 export TEST_AVAILABILITY_ZONE="us-east-1a"
 export TEST_PCAPI_STACK_NAME="ParallelCluster"
 export TEST_USE_USER_ROLE="true"
 export TEST_CLUSTER_NAME="test-cluster-$(whoami)"
+export TEST_IMAGE_NAME="test-image-$(whoami)"
