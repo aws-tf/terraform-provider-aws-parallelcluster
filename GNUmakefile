@@ -62,6 +62,12 @@ test:
 test_end2end:
 	TF_ACC=1 go test ./... -v -run="^TestEnd2End" $(TESTARGS) -timeout 120m
 
+test_end2end_cluster:
+	TF_ACC=1 go test ./... -v -run="^TestEnd2EndCluster" $(TESTARGS) -timeout 120m
+
+test_end2end_image:
+	TF_ACC=1 go test ./... -v -run="^TestEnd2EndImage" $(TESTARGS) -timeout 120m
+
 test_unit:
 	TF_ACC=1 go test ./... -v -run="^TestUnit" $(TESTARGS) -timeout 10m -cover
 
