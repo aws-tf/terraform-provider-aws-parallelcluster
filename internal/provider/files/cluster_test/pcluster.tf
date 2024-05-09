@@ -26,11 +26,14 @@ locals {
     HeadNode = {
       InstanceType = var.head_node_type
       Networking = {
-        ElasticIp = true
-        SubnetId  = var.subnet != null ? var.subnet : aws_subnet.public[0].id
+        SubnetId  = var.subnet != null ? var.subnet : aws_default_subnet.public_az1.id
       }
-      Ssh = {
-        KeyName = var.key_pair != null ? var.key_pair : aws_key_pair.key_pair.id
+      Iam = {
+        AdditionalIamPolicies = [
+          {
+            Policy: "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+          }
+        ]
       }
     }
     Scheduling = {
@@ -40,8 +43,14 @@ locals {
           Name         = "queue1"
           CapacityType = "ONDEMAND"
           Networking = {
-            SubnetIds      = [var.subnet != null ? var.subnet : aws_subnet.public[0].id]
-            AssignPublicIp = true
+            SubnetIds      = [var.subnet != null ? var.subnet : aws_default_subnet.public_az1.id]
+          }
+          Iam = {
+            AdditionalIamPolicies = [
+              {
+                Policy: "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+              }
+            ]
           }
           ComputeResources = [
             {
@@ -49,7 +58,6 @@ locals {
               InstanceType                      = var.compute_node_type
               MinCount                          = var.min_nodes
               MaxCount                          = var.max_nodes
-              DisableSimultaneousMultithreading = true
             }
           ]
         }
@@ -69,9 +77,8 @@ resource "pcluster_cluster" "test" {
   cluster_configuration = yamlencode(local.test_config)
 
   depends_on = [
-    aws_internet_gateway.internet-gateway,
-    aws_vpc.vpc,
     aws_default_vpc.default,
+    aws_default_subnet.public_az1,
   ]
 }
 
