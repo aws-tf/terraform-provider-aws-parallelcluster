@@ -267,7 +267,45 @@ Resources:
               - !Sub arn:${AWS::Partition}:apigateway:${AWS::Region}::/tags/*
             Sid: APIGateway
 
+  Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      BucketName: !Sub aws-parallelcluster-terraform-test-${AWS::AccountId}-${AWS::Region}
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      VersioningConfiguration:
+        Status: Enabled
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Retain
+
+  BucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref Bucket
+      PolicyDocument:
+        Statement:
+          - Action: s3:*
+            Condition:
+              Bool:
+                aws:SecureTransport: false
+            Effect: Deny
+            Principal:
+              AWS: '*'
+            Resource:
+              - !Sub ${Bucket.Arn}
+              - !Sub ${Bucket.Arn}/*
+        Version: 2012-10-17
+
 Outputs:
+  Bucket:
+    Value: !Ref Bucket
   ProviderE2ETestExecutionRole:
     Value: !GetAtt ProviderE2ETestExecutionRole.Arn
   ModuleE2ETestExecutionRole:
