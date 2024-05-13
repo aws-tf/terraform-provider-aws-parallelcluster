@@ -267,6 +267,13 @@ Resources:
               - !Sub arn:${AWS::Partition}:apigateway:${AWS::Region}::/tags/*
             Sid: APIGateway
 
+  KeyPair:
+    Type: AWS::EC2::KeyPair
+    Properties:
+      KeyFormat: pem
+      KeyName: !Sub aws-parallelcluster-terraform-test
+      KeyType: ed25519
+
   Bucket:
     Type: AWS::S3::Bucket
     Properties:
@@ -306,6 +313,10 @@ Resources:
 Outputs:
   Bucket:
     Value: !Ref Bucket
+  KeyPair:
+    Value: !Ref KeyPair
+  KeyPairSecret:
+    Value: !Sub arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/ec2/keypair/${KeyPair.KeyPairId}
   ProviderE2ETestExecutionRole:
     Value: !GetAtt ProviderE2ETestExecutionRole.Arn
   ModuleE2ETestExecutionRole:
