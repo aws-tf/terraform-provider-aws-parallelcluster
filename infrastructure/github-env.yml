@@ -82,7 +82,7 @@ Resources:
         Statement:
           - Effect: Allow
             Action: sts:AssumeRole
-            Resource: !Sub arn:aws:iam::${AWS::AccountId}:role/PCAPIUserRole-*
+            Resource: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/PCAPIUserRole-*
             Sid: AssumePCAPIUserRole
           - Effect: Allow
             Action:
@@ -100,7 +100,7 @@ Resources:
           - Effect: Allow
             Action:
               - cloudformation:DescribeStacks
-            Resource: !Sub arn:aws:cloudformation:*:${AWS::AccountId}:stack/*
+            Resource: !Sub arn:${AWS::Partition}:cloudformation:*:${AWS::AccountId}:stack/*
             Sid: CloudFormation
 
   ModuleE2ETestExecutionPolicy:
