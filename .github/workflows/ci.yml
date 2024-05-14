@@ -26,7 +26,7 @@ jobs:
         go:
           - 1.22.0
         terraform:
-          - 1.6.6
+          - 1.8.0
     steps:
         # Setup
       - uses: actions/checkout@v4
