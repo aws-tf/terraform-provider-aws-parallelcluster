@@ -29,7 +29,8 @@ jobs:
           - 1.8.0
     steps:
         # Setup
-      - uses: actions/checkout@v4
+      - name: Checkout Repository
+        uses: actions/checkout@v4
       - name: Setup Go
         uses: actions/setup-go@v4
         with:
@@ -49,7 +50,7 @@ jobs:
         timeout-minutes: 10
 
         # Find and Pull the archived cover report of the last run
-      - name: Retrieve Previous Succesful Run ID
+      - name: Retrieve Previous Successful Run ID
         id: prev-run-id
         continue-on-error: true
         uses: actions/github-script@v7
