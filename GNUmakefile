@@ -1,7 +1,7 @@
 default: build
 
-ifndef VERSION 
-VERSION = 3.9.0-1
+ifndef VERSION
+VERSION = 1.0.0-alpha
 endif
 
 install_path = ~/.terraform.d/plugins/terraform.local/local/pcluster/$(VERSION)
@@ -49,7 +49,7 @@ uninstall_linux_amd64:
 
 uninstall: uninstall_darwin_arm64 uninstall_darwin_amd64 uninstall_windows_amd64 uninstall_linux_amd64
 
-# Clean 
+# Clean
 clean:
 	rm -rf build/*
 
@@ -61,6 +61,12 @@ test:
 
 test_end2end:
 	TF_ACC=1 go test ./... -v -run="^TestEnd2End" $(TESTARGS) -timeout 120m
+
+test_end2end_cluster:
+	TF_ACC=1 go test ./... -v -run="^TestEnd2EndCluster" $(TESTARGS) -timeout 120m
+
+test_end2end_image:
+	TF_ACC=1 go test ./... -v -run="^TestEnd2EndImage" $(TESTARGS) -timeout 120m
 
 test_unit:
 	TF_ACC=1 go test ./... -v -run="^TestUnit" $(TESTARGS) -timeout 10m -cover
