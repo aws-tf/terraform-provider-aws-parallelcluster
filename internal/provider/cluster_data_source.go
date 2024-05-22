@@ -419,11 +419,15 @@ func (d *ClusterDataSource) Read(
 	}
 
 	reqCtx := context.WithValue(context.Background(), openapi.ContextAWSv4, d.awsv4)
-
-	cluster, rawHttp, err := d.client.ClusterOperationsAPI.DescribeCluster(
+	descRequest := d.client.ClusterOperationsAPI.DescribeCluster(
 		reqCtx,
 		data.ClusterName.ValueString(),
-	).Execute()
+	)
+
+	if !data.Region.IsNull() {
+		descRequest = descRequest.Region(data.Region.ValueString())
+	}
+	cluster, rawHttp, err := descRequest.Execute()
 	if err != nil {
 		if rawHttp != nil {
 			resp.Diagnostics.AddError(

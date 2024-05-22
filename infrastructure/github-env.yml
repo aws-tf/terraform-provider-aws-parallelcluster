@@ -1,0 +1,323 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Infrastructure to make GitHub able to operate on the account.
+
+Parameters:
+  Organization:
+    Description: Name of the GitHub organization that owns the repositories.
+    Type: String
+    Default: aws-tf
+  ProviderRepository:
+    Description: Name of the GitHub repository for the provider.
+    Type: String
+    Default: terraform-provider-aws-parallelcluster
+  ModuleRepository:
+    Description: Name of the GitHub repository for the module.
+    Type: String
+    Default: terraform-aws-parallelcluster
+
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: GitHub
+        Parameters:
+          - Organization
+          - ProviderRepository
+          - ModuleRepository
+
+Resources:
+
+  GithubOidc:
+    Type: AWS::IAM::OIDCProvider
+    Properties:
+      Url: https://token.actions.githubusercontent.com
+      ClientIdList:
+        - sts.amazonaws.com
+      ThumbprintList:
+        - 6938fd4d98bab03faadb97b34396831e3780aea1
+
+  ProviderE2ETestExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      Description: Role used by GitHub to run end-to-end tests for the provider.
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Action: sts:AssumeRoleWithWebIdentity
+            Principal:
+              Federated: !Ref GithubOidc
+            Condition:
+              StringEquals:
+                token.actions.githubusercontent.com:aud: sts.amazonaws.com
+                token.actions.githubusercontent.com:sub: !Sub repo:${Organization}/${ProviderRepository}:ref:refs/heads/main
+      ManagedPolicyArns:
+        - !Ref ProviderE2ETestExecutionPolicy
+      MaxSessionDuration: 7200
+
+  ModuleE2ETestExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      Description: Role used by GitHub to run end-to-end tests for the module.
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Action: sts:AssumeRoleWithWebIdentity
+            Principal:
+              Federated: !Ref GithubOidc
+            Condition:
+              StringEquals:
+                token.actions.githubusercontent.com:aud: sts.amazonaws.com
+                token.actions.githubusercontent.com:sub: !Sub repo:${Organization}/${ModuleRepository}:ref:refs/heads/main
+      ManagedPolicyArns:
+        - !Ref ModuleE2ETestExecutionPolicy
+      MaxSessionDuration: 7200
+
+  ProviderE2ETestExecutionPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      Description: Permissions to run end-to-end tests for the provider
+      ManagedPolicyName: ProviderE2ETestExecutionPolicy
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action: sts:AssumeRole
+            Resource: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/PCAPIUserRole-*
+            Sid: AssumePCAPIUserRole
+          - Effect: Allow
+            Action:
+              - ec2:DescribeVpcs
+              - ec2:DescribeVpcAttribute
+              - ec2:DescribeSubnets
+              - ec2:DescribeSecurityGroups
+              - ec2:AuthorizeSecurityGroupEgress
+              - ec2:AuthorizeSecurityGroupIngress
+              - ec2:RevokeSecurityGroupIngress
+              - ec2:RevokeSecurityGroupEgress
+              - ec2:DescribeSecurityGroupRules
+            Resource: '*'
+            Sid: EC2
+          - Effect: Allow
+            Action:
+              - cloudformation:DescribeStacks
+            Resource: !Sub arn:${AWS::Partition}:cloudformation:*:${AWS::AccountId}:stack/*
+            Sid: CloudFormation
+
+  ModuleE2ETestExecutionPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      Description: Permissions to run end-to-end tests for the module.
+      ManagedPolicyName: ModuleE2ETestExecutionPolicy
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action: sts:AssumeRole
+            Resource: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/PCAPIUserRole-*
+            Sid: AssumePCAPIUserRole
+          - Effect: Allow
+            Action:
+              - s3:ListBucket
+              - s3:GetObject
+              - s3:PutObject
+            Resource:
+              - !Sub ${Bucket.Arn}
+              - !Sub ${Bucket.Arn}/*
+            Sid: S3TerraformState
+          - Effect: Allow
+            Action:
+              - s3:GetObject
+            Resource:
+              - !Sub arn:${AWS::Partition}:s3:::*-aws-parallelcluster/parallelcluster/*
+              - !Sub arn:${AWS::Partition}:s3:::*-aws-parallelcluster/parallelcluster/*/api/ParallelCluster.openapi.yaml
+            Sid: S3ParallelClusterArtifacts
+          - Effect: Allow
+            Action:
+              - ec2:Describe*
+            Resource:
+              - '*'
+            Sid: EC2Read
+          - Effect: Allow
+            Action:
+              - ec2:CreateVpc
+              - ec2:DeleteVpc
+              - ec2:ModifyVpcAttribute
+              - ec2:CreateSubnet
+              - ec2:DeleteSubnet
+              - ec2:ModifySubnetAttribute
+              - ec2:CreateSecurityGroup
+              - ec2:DeleteSecurityGroup
+              - ec2:ModifySecurityGroupRules
+              - ec2:AuthorizeSecurityGroupEgress
+              - ec2:AuthorizeSecurityGroupIngress
+              - ec2:RevokeSecurityGroupIngress
+              - ec2:RevokeSecurityGroupEgress
+              - ec2:CreateInternetGateway
+              - ec2:DeleteInternetGateway
+              - ec2:AttachInternetGateway
+              - ec2:DetachInternetGateway
+              - ec2:CreateNatGateway
+              - ec2:DeleteNatGateway
+              - ec2:CreateRouteTable
+              - ec2:DeleteRouteTable
+              - ec2:AssociateRouteTable
+              - ec2:DisassociateRouteTable
+              - ec2:CreateRoute
+              - ec2:DeleteRoute
+              - ec2:AllocateAddress
+              - ec2:ReleaseAddress
+              - ec2:CreateKeyPair
+              - ec2:DeleteKeyPair
+              - ec2:ImportKeyPair
+              - ec2:CreateTags
+              - ec2:DeleteTags
+            Resource:
+              - !Sub arn:${AWS::Partition}:ec2:${AWS::Region}:${AWS::AccountId}:vpc/*
+              - !Sub arn:${AWS::Partition}:ec2:${AWS::Region}:${AWS::AccountId}:subnet/*
+              - !Sub arn:${AWS::Partition}:ec2:${AWS::Region}:${AWS::AccountId}:security-group/*
+              - !Sub arn:${AWS::Partition}:ec2:${AWS::Region}:${AWS::AccountId}:internet-gateway/*
+              - !Sub arn:${AWS::Partition}:ec2:${AWS::Region}:${AWS::AccountId}:natgateway/*
+              - !Sub arn:${AWS::Partition}:ec2:${AWS::Region}:${AWS::AccountId}:route-table/*
+              - !Sub arn:${AWS::Partition}:ec2:${AWS::Region}:${AWS::AccountId}:elastic-ip/*
+              - !Sub arn:${AWS::Partition}:ec2:${AWS::Region}:${AWS::AccountId}:key-pair/*
+            Sid: EC2Write
+          - Effect: Allow
+            Action:
+              - ec2:DisassociateAddress
+            Resource:
+              - !Sub arn:${AWS::Partition}:ec2:${AWS::Region}:${AWS::AccountId}:*/*
+            Sid: EC2DisassociateAddress
+          - Effect: Allow
+            Action:
+              - cloudformation:CreateStack
+              - cloudformation:DeleteStack
+              - cloudformation:CreateChangeSet
+              - cloudformation:DescribeStacks
+              - cloudformation:GetTemplate
+            Resource: !Sub arn:${AWS::Partition}:cloudformation:*:${AWS::AccountId}:stack/*
+            Sid: CloudFormation
+          - Effect: Allow
+            Action:
+              - cloudformation:CreateChangeSet
+            Resource:
+              - !Sub arn:${AWS::Partition}:cloudformation:*:aws:transform/Include
+              - !Sub arn:aws:cloudformation:*:aws:transform/Serverless-2016-10-31
+            Sid: CloudFormationTransform
+          - Effect: Allow
+            Action:
+              - iam:CreateRole
+              - iam:DeleteRole
+              - iam:GetRole
+              - iam:CreatePolicy
+              - iam:DeletePolicy
+              - iam:GetPolicy
+              - iam:GetRolePolicy
+              - iam:AttachRolePolicy
+              - iam:DetachRolePolicy
+              - iam:PutRolePolicy
+              - iam:DeleteRolePolicy
+              - iam:ListPolicyVersions
+            Resource:
+              - !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/*
+              - !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:policy/*
+            Sid: IAM
+          - Effect: Allow
+            Action:
+              - iam:PassRole
+            Resource:
+              - !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/ParallelClusterLambdaRole-*
+              - !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/APIGatewayExecutionRole-*
+            Sid: IAMPassRole
+          - Effect: Allow
+            Action:
+              - lambda:CreateFunction
+              - lambda:DeleteFunction
+              - lambda:GetFunction
+              - lambda:PublishLayerVersion
+              - lambda:DeleteLayerVersion
+              - lambda:GetLayerVersion
+              - lambda:TagResource
+              - lambda:UntagResource
+            Resource:
+              - !Sub arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:layer:PCLayer-*
+              - !Sub arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:*-ParallelClusterFunction-*
+            Sid: Lambda
+          - Effect: Allow
+            Action:
+              - logs:CreateLogGroup
+              - logs:DeleteLogGroup
+              - logs:DescribeLogGroups
+              - logs:PutRetentionPolicy
+              - logs:TagLogGroup
+              - logs:UntagLogGroup
+            Resource:
+              - !Sub arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/*-ParallelClusterFunction-*
+            Sid: Logs
+          - Effect: Allow
+            Action:
+              - apigateway:DELETE
+              - apigateway:GET
+              - apigateway:PATCH
+              - apigateway:POST
+              - apigateway:PUT
+              - apigateway:UpdateRestApiPolicy
+            Resource:
+              - !Sub arn:${AWS::Partition}:apigateway:${AWS::Region}::/restapis
+              - !Sub arn:${AWS::Partition}:apigateway:${AWS::Region}::/restapis/*
+              - !Sub arn:${AWS::Partition}:apigateway:${AWS::Region}::/tags/*
+            Sid: APIGateway
+
+  KeyPair:
+    Type: AWS::EC2::KeyPair
+    Properties:
+      KeyFormat: pem
+      KeyName: !Sub aws-parallelcluster-terraform-test
+      KeyType: ed25519
+
+  Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      BucketName: !Sub aws-parallelcluster-terraform-test-${AWS::AccountId}-${AWS::Region}
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      VersioningConfiguration:
+        Status: Enabled
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Retain
+
+  BucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref Bucket
+      PolicyDocument:
+        Statement:
+          - Action: s3:*
+            Condition:
+              Bool:
+                aws:SecureTransport: false
+            Effect: Deny
+            Principal:
+              AWS: '*'
+            Resource:
+              - !Sub ${Bucket.Arn}
+              - !Sub ${Bucket.Arn}/*
+        Version: 2012-10-17
+
+Outputs:
+  Bucket:
+    Value: !Ref Bucket
+  KeyPair:
+    Value: !Ref KeyPair
+  KeyPairSecret:
+    Value: !Sub arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/ec2/keypair/${KeyPair.KeyPairId}
+  ProviderE2ETestExecutionRole:
+    Value: !GetAtt ProviderE2ETestExecutionRole.Arn
+  ModuleE2ETestExecutionRole:
+    Value: !GetAtt ModuleE2ETestExecutionRole.Arn

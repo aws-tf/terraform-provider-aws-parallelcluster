@@ -167,6 +167,7 @@ func (r *ClusterResource) Schema(
 func (r *ClusterResource) waitClusterReady(
 	ctx context.Context,
 	id string,
+	region *string,
 ) (*openapi.DescribeClusterResponseContent, error) {
 	stateConf := &retry.StateChangeConf{
 		Pending: []string{
@@ -183,10 +184,9 @@ func (r *ClusterResource) waitClusterReady(
 			string(openapi.CLUSTERSTATUS_DELETE_COMPLETE),
 			string(openapi.CLUSTERSTATUS_DELETE_FAILED),
 		},
-		Refresh: r.clusterStatus(ctx, id),
+		Refresh: r.clusterStatus(ctx, id, region),
 		Timeout: ClusterReadyTimeout,
 	}
-
 	outputRaw, err := stateConf.WaitForStateContext(ctx)
 	if output, ok := outputRaw.(openapi.DescribeClusterResponseContent); ok {
 		return &output, err
@@ -197,9 +197,10 @@ func (r *ClusterResource) waitClusterReady(
 func (r *ClusterResource) clusterStatus(
 	ctx context.Context,
 	id string,
+	region *string,
 ) retry.StateRefreshFunc {
 	return func() (interface{}, string, error) {
-		cluster, err := r.getCluster(ctx, id)
+		cluster, err := r.getCluster(ctx, id, region)
 		if err != nil {
 			return nil, "", err
 		}
@@ -209,12 +210,16 @@ func (r *ClusterResource) clusterStatus(
 }
 
 func (r *ClusterResource) getCluster(
-	ctx context.Context, clusterName string,
+	ctx context.Context, clusterName string, region *string,
 ) (openapi.DescribeClusterResponseContent, error) {
-	cluster, _, err := r.client.ClusterOperationsAPI.DescribeCluster(
+	DescRequest := r.client.ClusterOperationsAPI.DescribeCluster(
 		ctx,
 		clusterName,
-	).Execute()
+	)
+	if region != nil {
+		DescRequest = DescRequest.Region(*region)
+	}
+	cluster, _, err := DescRequest.Execute()
 	if err != nil {
 		return openapi.DescribeClusterResponseContent{}, err
 	}
@@ -402,10 +407,11 @@ func (r *ClusterResource) Create(
 
 	if cluster, ok := httpResp.GetClusterOk(); ok {
 		populateClusterResourceInfo(cluster, &data)
-
+		resp.Diagnostics.AddWarning(":::", *data.Region.ValueStringPointer())
 		clusterDesc, err := r.waitClusterReady(
 			reqCtx,
 			data.ClusterName.ValueString(),
+			data.Region.ValueStringPointer(),
 		)
 		if err != nil {
 			resp.Diagnostics.AddError(
@@ -447,7 +453,11 @@ func (r *ClusterResource) Read(
 
 	reqCtx := context.WithValue(context.Background(), openapi.ContextAWSv4, r.awsv4)
 
-	clusterDesc, err := r.getCluster(reqCtx, data.Id.ValueString())
+	clusterDesc, err := r.getCluster(
+		reqCtx,
+		data.Id.ValueString(),
+		data.Region.ValueStringPointer(),
+	)
 	if err != nil {
 		if err.Error() == failedToFindClusterErr {
 			resp.Diagnostics.AddWarning("Failed to find cluster.", err.Error())
@@ -548,6 +558,7 @@ func (r *ClusterResource) Update(
 		clusterDesc, err := r.waitClusterReady(
 			reqCtx,
 			planData.ClusterName.ValueString(),
+			planData.Region.ValueStringPointer(),
 		)
 		if err != nil {
 			resp.Diagnostics.AddError(
@@ -595,7 +606,11 @@ func (r *ClusterResource) Delete(
 	if err != nil && err.Error() != failedToFindClusterErr {
 		resp.Diagnostics.AddError("Failure occurred while deleting cluster", err.Error())
 	}
-	clusterDesc, err := r.waitClusterReady(reqCtx, data.ClusterName.ValueString())
+	clusterDesc, err := r.waitClusterReady(
+		reqCtx,
+		data.ClusterName.ValueString(),
+		data.Region.ValueStringPointer(),
+	)
 	if err != nil && err.Error() != failedToFindClusterErr {
 		resp.Diagnostics.AddError(
 			"Cluster delete failed to complete.",
@@ -624,7 +639,7 @@ func (r *ClusterResource) ImportState(
 
 	reqCtx := context.WithValue(context.Background(), openapi.ContextAWSv4, r.awsv4)
 
-	clusterDesc, err := r.getCluster(reqCtx, req.ID)
+	clusterDesc, err := r.getCluster(reqCtx, req.ID, nil)
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to find cluster.", err.Error())
 		return

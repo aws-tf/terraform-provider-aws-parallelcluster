@@ -2,12 +2,11 @@ Region: us-east-1
 Image:
  Os: alinux2
 HeadNode:
- InstanceType: t2.micro
+ InstanceType: t3.small
  Networking:
-   ElasticIp: true
    SubnetId: subnet-04771c60de343b20a
  Ssh:
-   KeyName: pcluster20231113162056689300000001 
+   KeyName: pcluster20231113162056689300000001
 Scheduling:
  Scheduler: slurm
  SlurmQueues:
@@ -16,15 +15,10 @@ Scheduling:
      Networking:
        SubnetIds:
          - subnet-04771c60de343b20a
-       AssignPublicIp: true
      ComputeResources:
        - Name: compute
-         InstanceType: t2.micro
-         MinCount: "1"
-         MaxCount: "4"
-         DisableSimultaneousMultithreading: true
+         InstanceType: t3.small
+         MinCount: 1
+         MaxCount: 4
  SlurmSettings:
-   QueueUpdateStrategy: TERMINATE 
-Tags:
-  - Key: Owner
-    Value: k.keller
+   QueueUpdateStrategy: TERMINATE

@@ -38,7 +38,7 @@ const (
 )
 
 func TestEnd2EndCluster(t *testing.T) {
-	clusterName := "test-cluster"
+	clusterName := defaultClusterName
 
 	configVariables := config.Variables{
 		"cluster_name": config.StringVariable(clusterName),
@@ -94,6 +94,7 @@ func TestEnd2EndCluster(t *testing.T) {
 	if name, ok := os.LookupEnv("TEST_CLUSTER_NAME"); ok {
 		configVariables["cluster_name"] = config.StringVariable(name)
 		configUpdateVariables["cluster_name"] = config.StringVariable(name)
+		clusterName = name
 	}
 
 	t.Parallel()
@@ -343,6 +344,7 @@ func TestUnitWaitClusterReady(t *testing.T) {
 
 	cases := []struct {
 		name     string
+		region   *string
 		expected *openapi.DescribeClusterResponseContent
 	}{
 		{
@@ -433,7 +435,7 @@ func TestUnitWaitClusterReady(t *testing.T) {
 	}
 
 	for _, c := range cases {
-		out, err := cR.waitClusterReady(context.TODO(), c.name)
+		out, err := cR.waitClusterReady(context.TODO(), c.name, c.region)
 		if err != nil {
 			if c.name == names["NotFound"] {
 				if err.Error() != failedToFindClusterErr {
@@ -485,16 +487,32 @@ func TestUnitGetCluster(t *testing.T) {
 	}
 	cR.client = openapi.NewAPIClient(c)
 
-	contents := []string{"cluster01", "cluster02"}
+	region := "us-east-1"
+	contents := []struct {
+		name   string
+		region *string
+	}{
+		{
+			name:   "cluster01",
+			region: &region,
+		},
+		{
+			name:   "cluster02",
+			region: nil,
+		},
+	}
 
 	cases := []struct {
-		content  string
+		content struct {
+			name   string
+			region *string
+		}
 		expected openapi.DescribeClusterResponseContent
 	}{
 		{
 			content: contents[0],
 			expected: openapi.DescribeClusterResponseContent{
-				ClusterName:               contents[0],
+				ClusterName:               contents[0].name,
 				ComputeFleetStatus:        openapi.COMPUTEFLEETSTATUS_DISABLED,
 				ClusterStatus:             openapi.CLUSTERSTATUS_CREATE_COMPLETE,
 				CloudFormationStackStatus: openapi.CLOUDFORMATIONSTACKSTATUS_CREATE_COMPLETE,
@@ -503,7 +521,7 @@ func TestUnitGetCluster(t *testing.T) {
 		{
 			content: contents[1],
 			expected: openapi.DescribeClusterResponseContent{
-				ClusterName:               contents[1],
+				ClusterName:               contents[1].name,
 				ComputeFleetStatus:        openapi.COMPUTEFLEETSTATUS_DISABLED,
 				ClusterStatus:             openapi.CLUSTERSTATUS_CREATE_COMPLETE,
 				CloudFormationStackStatus: openapi.CLOUDFORMATIONSTACKSTATUS_CREATE_COMPLETE,
@@ -512,7 +530,7 @@ func TestUnitGetCluster(t *testing.T) {
 	}
 
 	for _, c := range cases {
-		out, err := cR.getCluster(context.TODO(), c.content)
+		out, err := cR.getCluster(context.TODO(), c.content.name, c.content.region)
 		if err != nil {
 			t.Fatalf("Failure while getting cluster: %v", err)
 		}
