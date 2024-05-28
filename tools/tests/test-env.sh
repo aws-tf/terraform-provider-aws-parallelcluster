@@ -18,6 +18,12 @@
 #                                 If true, the tests will use the user role ParallelClusterApiUserRole returned by the ParallelCluster API.
 #                                 Default is false.
 #
+# TEST_ID:                        [Id];
+#                                 This is the ID that is used to identify the test run.
+#                                 This is used to create unique names for resources and
+#                                 it's appended as suffix to the name of the cluster and AMI.
+#                                 Default is a timestamp in the format YYYYmmdd-HHMMSS.
+#
 # TEST_CLUSTER_NAME:              [Cluster name];
 #                                 This is the name of the cluster that tests will create.
 #                                 Default is test-cluster.
@@ -30,5 +36,6 @@ export TEST_REGION="us-east-1"
 export TEST_AVAILABILITY_ZONE="us-east-1a"
 export TEST_PCAPI_STACK_NAME="ParallelCluster"
 export TEST_USE_USER_ROLE="true"
-export TEST_CLUSTER_NAME="test-cluster-$(whoami)"
-export TEST_IMAGE_NAME="test-image-$(whoami)"
+export TEST_ID=$(date +'%Y%m%d-%H%M%S-%s')
+export TEST_CLUSTER_NAME="test-cluster-$(whoami)-$TEST_ID"
+export TEST_IMAGE_NAME="test-image-$(whoami)-$TEST_ID"
