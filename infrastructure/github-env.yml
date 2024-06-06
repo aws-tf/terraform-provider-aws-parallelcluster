@@ -99,6 +99,26 @@ Resources:
             Sid: EC2
           - Effect: Allow
             Action:
+              - iam:GetPolicy
+              - iam:GetPolicyVersion
+              - iam:GetRole
+              - iam:ListPolicies
+              - iam:ListRolePolicies
+              - iam:ListAttachedRolePolicies
+              - iam:ListInstanceProfilesForRole
+            Resource: '*'
+            Sid: IAMRead
+          - Effect: Allow
+            Action:
+              - iam:AttachRolePolicy
+              - iam:CreateRole
+              - iam:DeleteRole
+              - iam:DetachRolePolicy
+            Resource:
+              - !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/parallelcluster/AdminRoleForLambda-*
+            Sid: IAMWrite
+          - Effect: Allow
+            Action:
               - cloudformation:DescribeStacks
             Resource: !Sub arn:${AWS::Partition}:cloudformation:*:${AWS::AccountId}:stack/*
             Sid: CloudFormation
