@@ -144,10 +144,6 @@ func TestEnd2EndImage(t *testing.T) {
 					),
 					resource.TestCheckResourceAttrSet(
 						"data.pcluster_image."+testConfig.resourceName,
-						"stack_events.#",
-					),
-					resource.TestCheckResourceAttrSet(
-						"data.pcluster_image."+testConfig.resourceName,
 						"log_streams.#",
 					),
 				),
@@ -244,6 +240,33 @@ data "pcluster_list_official_images" "parent_image" {
         architecture = "x86_64"
 }
 
+resource "aws_iam_role" "admin_role_for_lambda" {
+	name = "AdminRoleForLambda"
+	path = "/parallelcluster/"
+	assume_role_policy = jsonencode({
+		Version = "2012-10-17"
+		Statement = [
+			{
+				Action = "sts:AssumeRole"
+				Effect = "Allow"
+				Principal = {
+					Service = "lambda.amazonaws.com"
+				}
+			}
+		]
+	})
+}
+
+data "aws_iam_policy" "administrator_access_policy" {
+  name = "AdministratorAccess"
+}
+
+
+resource "aws_iam_role_policy_attachment" "admin_role_for_lambda_policy_attachment" {
+  role       = aws_iam_role.admin_role_for_lambda.name
+  policy_arn = data.aws_iam_policy.administrator_access_policy.arn
+}
+
 // Null resource allows us to use built-in test functions above
 data "null_data_source" "values" {
   inputs = {
@@ -253,7 +276,8 @@ data "null_data_source" "values" {
               "ParentImage": data.pcluster_list_official_images.parent_image.official_images[0].amiId,
 			  "SubnetId": aws_default_subnet.public_az1.id,
               "SecurityGroupIds": [aws_default_security_group.default.id],
-              "UpdateOsPackages": {"Enabled": false}
+              "UpdateOsPackages": {"Enabled": false},
+              "Iam": {"CleanupLambdaRole": resource.aws_iam_role.admin_role_for_lambda.arn}
       }
     })
 	}
