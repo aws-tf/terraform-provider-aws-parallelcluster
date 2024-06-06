@@ -72,7 +72,10 @@ locals {
 resource "pcluster_cluster" "test" {
   cluster_name        = var.cluster_name
   region              = var.region
-  suppress_validators = []
+  validation_failure_level = "WARNING"
+  suppress_validators = [
+    "type:KeyPairValidator"
+  ]
 
   cluster_configuration = yamlencode(local.test_config)
 

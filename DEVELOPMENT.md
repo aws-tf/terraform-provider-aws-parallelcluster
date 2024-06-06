@@ -147,3 +147,25 @@ go install -v github.com/google/go-licenses@latest
 ```
 go-licenses report . --template tools/licensing/go-licenses.tpl > THIRD-PARTY-LICENSES.txt 2> /tmp/go-licenses-errors.txt
 ```
+
+
+## Logging
+Enable logging by setting envars:
+```
+export TF_LOG_PATH="tf.log"
+export TF_LOG="TRACE"
+export TF_LOG_PROVIDER="TRACE"
+```
+
+Execute the provider in debug mode by setting `Debug: true` in `internal/provider/openapi/configuration.go`:
+
+```
+func NewConfiguration() *Configuration {
+	cfg := &Configuration{
+	    ...
+		Debug:            true,
+		...
+	}
+	return cfg
+}
+```
