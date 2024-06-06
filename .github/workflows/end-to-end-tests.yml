@@ -52,7 +52,7 @@ jobs:
           role-to-assume: ${{ secrets.ACTION_E2E_TESTS_ROLE }}
           role-session-name: GitHub_TerraformProviderAwsParallelCluster_End2EndTests
       - name: Generate Test ID
-        run: echo "TEST_ID=$(date +'%Y%m%d-%H%M%S-%s')" >> $GITHUB_ENV
+        run: echo "TEST_ID=$(uuidgen)" >> $GITHUB_ENV
       - name: Execute Tests (${{ matrix.test_target }})
         env:
           TF_ACC: "1"
