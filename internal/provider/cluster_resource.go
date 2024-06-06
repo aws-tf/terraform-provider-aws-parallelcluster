@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -379,7 +380,7 @@ func (r *ClusterResource) Create(
 
 	suppressValidators := make([]string, 0)
 	for _, s := range data.SuppressValidators.Elements() {
-		suppressValidators = append(suppressValidators, s.String())
+		suppressValidators = append(suppressValidators, strings.ReplaceAll(s.String(), `"`, ``))
 	}
 
 	tflog.Info(ctx, "Creating Parallel Cluster")
