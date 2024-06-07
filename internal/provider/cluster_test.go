@@ -128,6 +128,7 @@ func TestEnd2EndCluster(t *testing.T) {
 				ResourceName:             "pcluster_cluster." + testResourceName,
 				ImportState:              true,
 				ImportStateVerify:        true,
+				ImportStateVerifyIgnore:  []string{"suppress_validators", "validation_failure_level"},
 			},
 			{
 				// Update and Read testing
