@@ -515,6 +515,11 @@ func (r *ClusterResource) Update(
 		)
 	}
 
+	suppressValidators := make([]string, 0)
+	for _, s := range planData.SuppressValidators.Elements() {
+		suppressValidators = append(suppressValidators, strings.ReplaceAll(s.String(), `"`, ``))
+	}
+
 	// If the cluster config and region are unchanged nothing is left to do.
 	if planData.ClusterConfiguration == stateData.ClusterConfiguration {
 		if planData.Region.Equal(stateData.Region) {
@@ -539,7 +544,9 @@ func (r *ClusterResource) Update(
 		}
 	}
 
-	content, fullResp, err := clusterUpdateRequest.Execute()
+	content, fullResp, err := clusterUpdateRequest.
+		SuppressValidators(suppressValidators).
+		Execute()
 	if err != nil || content == nil {
 		if fullResp != nil {
 			resp.Diagnostics.AddError("Failure while updating cluster.",
