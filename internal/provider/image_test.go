@@ -277,7 +277,7 @@ resource "aws_iam_policy" "cleanup_lambda_policy" {
 					"iam:DeleteRole",
 					"iam:DeleteRolePolicy"
 				],
-				"Resource": "arn:*:iam::*:role/parallelcluster/*",
+				"Resource": "arn:${data.aws_partition.current.partition}:iam::${data.aws_caller_identity.current.account_id}:role/parallelcluster/*",
 				"Effect": "Allow"
 			},
 			{
@@ -285,12 +285,12 @@ resource "aws_iam_policy" "cleanup_lambda_policy" {
 					"iam:DeleteInstanceProfile",
 					"iam:RemoveRoleFromInstanceProfile"
 				],
-				"Resource": "arn:*:iam::*:instance-profile/parallelcluster/*",
+				"Resource": "arn:${data.aws_partition.current.partition}:iam::${data.aws_caller_identity.current.account_id}:instance-profile/parallelcluster/*",
 				"Effect": "Allow"
 			},
 			{
 				"Action": "imagebuilder:DeleteInfrastructureConfiguration",
-				"Resource": "arn:*:imagebuilder:*:*:infrastructure-configuration/parallelclusterimage-*",
+				"Resource": "arn:${data.aws_partition.current.partition}:imagebuilder:${local.default_region}:${data.aws_caller_identity.current.account_id}:infrastructure-configuration/parallelclusterimage-*",
 				"Effect": "Allow"
 			},
 			{
@@ -298,18 +298,18 @@ resource "aws_iam_policy" "cleanup_lambda_policy" {
 					"imagebuilder:DeleteComponent"
 				],
 				"Resource": [
-					"arn:*:imagebuilder:*:*:component/parallelclusterimage-*/*"
+					"arn:${data.aws_partition.current.partition}:imagebuilder:${local.default_region}:${data.aws_caller_identity.current.account_id}:component/parallelclusterimage-*/*"
 				],
 				"Effect": "Allow"
 			},
 			{
 				"Action": "imagebuilder:DeleteImageRecipe",
-				"Resource": "arn:*:imagebuilder:*:*:image-recipe/parallelclusterimage-*/*",
+				"Resource": "arn:${data.aws_partition.current.partition}:imagebuilder:${local.default_region}:${data.aws_caller_identity.current.account_id}:image-recipe/parallelclusterimage-*/*",
 				"Effect": "Allow"
 			},
 			{
 				"Action": "imagebuilder:DeleteDistributionConfiguration",
-				"Resource": "arn:*:imagebuilder:*:*:distribution-configuration/parallelclusterimage-*",
+				"Resource": "arn:${data.aws_partition.current.partition}:imagebuilder:${local.default_region}:${data.aws_caller_identity.current.account_id}:distribution-configuration/parallelclusterimage-*",
 				"Effect": "Allow"
 			},
 			{
@@ -318,17 +318,17 @@ resource "aws_iam_policy" "cleanup_lambda_policy" {
 					"imagebuilder:GetImage",
 					"imagebuilder:CancelImageCreation"
 				],
-				"Resource": "arn:*:imagebuilder:*:*:image/parallelclusterimage-*/*",
+				"Resource": "arn:${data.aws_partition.current.partition}:imagebuilder:${local.default_region}:${data.aws_caller_identity.current.account_id}:image/parallelclusterimage-*/*",
 				"Effect": "Allow"
 			},
 			{
 				"Action": "cloudformation:DeleteStack",
-				"Resource": "arn:*:cloudformation:*:*:stack/*/*",
+				"Resource": "arn:${data.aws_partition.current.partition}:cloudformation:${local.default_region}:${data.aws_caller_identity.current.account_id}:stack/*/*",
 				"Effect": "Allow"
 			},
 			{
 				"Action": "ec2:CreateTags",
-				"Resource": "arn:*:ec2:*::image/*",
+				"Resource": "arn:${data.aws_partition.current.partition}:ec2:${local.default_region}::image/*",
 				"Effect": "Allow"
 			},
 			{
@@ -341,12 +341,12 @@ resource "aws_iam_policy" "cleanup_lambda_policy" {
 					"lambda:DeleteFunction",
 					"lambda:RemovePermission"
 				],
-				"Resource": "arn:*:lambda:*:*:function:ParallelClusterImage-*",
+				"Resource": "arn:${data.aws_partition.current.partition}:lambda:${local.default_region}:${data.aws_caller_identity.current.account_id}:function:ParallelClusterImage-*",
 				"Effect": "Allow"
 			},
 			{
 				"Action": "logs:DeleteLogGroup",
-				"Resource": "arn:*:logs:*:*:log-group:/aws/lambda/ParallelClusterImage-*:*",
+				"Resource": "arn:${data.aws_partition.current.partition}:logs:${local.default_region}:${data.aws_caller_identity.current.account_id}:log-group:/aws/lambda/ParallelClusterImage-*:*",
 				"Effect": "Allow"
 			},
 			{
@@ -356,7 +356,7 @@ resource "aws_iam_policy" "cleanup_lambda_policy" {
 					"SNS:GetSubscriptionAttributes",
 					"SNS:Unsubscribe"
 				],
-				"Resource": "arn:*:sns:*:*:ParallelClusterImage-*",
+				"Resource": "arn:${data.aws_partition.current.partition}:sns:${local.default_region}:${data.aws_caller_identity.current.account_id}:ParallelClusterImage-*",
 				"Effect": "Allow"
 			}
 		]
