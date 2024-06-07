@@ -103,6 +103,7 @@ Resources:
               - iam:GetPolicyVersion
               - iam:GetRole
               - iam:ListPolicies
+              - iam:ListPolicyVersions
               - iam:ListRolePolicies
               - iam:ListAttachedRolePolicies
               - iam:ListInstanceProfilesForRole
@@ -111,11 +112,14 @@ Resources:
           - Effect: Allow
             Action:
               - iam:AttachRolePolicy
+              - iam:CreatePolicy
               - iam:CreateRole
+              - iam:DeletePolicy
               - iam:DeleteRole
               - iam:DetachRolePolicy
             Resource:
-              - !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/parallelcluster/AdminRoleForLambda-*
+              - !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/parallelcluster/CleanupLambdaRole-*
+              - !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:policy/parallelcluster/CleanupLambdaPolicy-*
             Sid: IAMWrite
           - Effect: Allow
             Action:
