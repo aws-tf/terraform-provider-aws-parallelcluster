@@ -158,9 +158,9 @@ func TestUnitClusterResource(t *testing.T) {
 			"rollback_on_failure":   {},
 			"suppress_validators": tftypes.NewValue(
 				tftypes.List{ElementType: tftypes.String},
-				[]tftypes.Value{},
+				[]tftypes.Value{tftypes.NewValue(tftypes.String, "type:some_validator")},
 			),
-			"validation_failure_level": {},
+			"validation_failure_level": tftypes.NewValue(tftypes.String, "some_level"),
 			"id":                       tftypes.NewValue(tftypes.String, "some_name"),
 			"cloudformation_stack_arn": tftypes.NewValue(tftypes.String, "some_arn"),
 			"cloudformation_stack_status": tftypes.NewValue(
@@ -260,7 +260,8 @@ func TestUnitClusterResource(t *testing.T) {
 		CloudformationStackStatus: types.StringValue(string(input.CloudFormationStackStatus)),
 		Region:                    types.StringValue(input.Region),
 		RollbackOnFailure:         types.BoolNull(),
-		SuppressValidators:        types.ListValueMust(types.StringType, []attr.Value{}),
+		SuppressValidators:        types.ListValueMust(types.StringType, []attr.Value{types.StringValue("type:some_validator")}),
+		ValidationFailureLevel:    types.StringValue("some_level"),
 		Version:                   types.StringValue(input.Version),
 	}
 
@@ -464,6 +465,7 @@ func TestUnitClusterResource(t *testing.T) {
 	}
 
 	expectedOutput.SuppressValidators = types.ListNull(types.StringType)
+	expectedOutput.ValidationFailureLevel = types.StringNull()
 	if !reflect.DeepEqual(output, expectedOutput) {
 		t.Fatalf(
 			"Expected output did not match actual output: \nO: %v\nE: %v\n",
