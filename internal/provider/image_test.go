@@ -243,8 +243,12 @@ data "pcluster_list_official_images" "parent_image" {
 
 resource "random_uuid" "test" {}
 
-resource "aws_iam_role" "admin_role_for_lambda" {
-	name = "AdminRoleForLambda-${random_uuid.test.result}"
+data "aws_caller_identity" "current" {}
+
+data "aws_partition" "current" {}
+
+resource "aws_iam_role" "cleanup_lambda_role" {
+	name = "CleanupLambdaRole-${random_uuid.test.result}"
 	path = "/parallelcluster/"
 	assume_role_policy = jsonencode({
 		Version = "2012-10-17"
@@ -260,14 +264,109 @@ resource "aws_iam_role" "admin_role_for_lambda" {
 	})
 }
 
-data "aws_iam_policy" "administrator_access_policy" {
-  name = "AdministratorAccess"
+resource "aws_iam_policy" "cleanup_lambda_policy" {
+  name = "CleanupLambdaPolicy-${random_uuid.test.result}"
+  path = "/parallelcluster/"
+  policy = jsonencode(
+	 {
+		"Version": "2012-10-17",
+		"Statement": [
+			{
+				"Action": [
+					"iam:DetachRolePolicy",
+					"iam:DeleteRole",
+					"iam:DeleteRolePolicy"
+				],
+				"Resource": "arn:*:iam::*:role/parallelcluster/*",
+				"Effect": "Allow"
+			},
+			{
+				"Action": [
+					"iam:DeleteInstanceProfile",
+					"iam:RemoveRoleFromInstanceProfile"
+				],
+				"Resource": "arn:*:iam::*:instance-profile/parallelcluster/*",
+				"Effect": "Allow"
+			},
+			{
+				"Action": "imagebuilder:DeleteInfrastructureConfiguration",
+				"Resource": "arn:*:imagebuilder:*:*:infrastructure-configuration/parallelclusterimage-*",
+				"Effect": "Allow"
+			},
+			{
+				"Action": [
+					"imagebuilder:DeleteComponent"
+				],
+				"Resource": [
+					"arn:*:imagebuilder:*:*:component/parallelclusterimage-*/*"
+				],
+				"Effect": "Allow"
+			},
+			{
+				"Action": "imagebuilder:DeleteImageRecipe",
+				"Resource": "arn:*:imagebuilder:*:*:image-recipe/parallelclusterimage-*/*",
+				"Effect": "Allow"
+			},
+			{
+				"Action": "imagebuilder:DeleteDistributionConfiguration",
+				"Resource": "arn:*:imagebuilder:*:*:distribution-configuration/parallelclusterimage-*",
+				"Effect": "Allow"
+			},
+			{
+				"Action": [
+					"imagebuilder:DeleteImage",
+					"imagebuilder:GetImage",
+					"imagebuilder:CancelImageCreation"
+				],
+				"Resource": "arn:*:imagebuilder:*:*:image/parallelclusterimage-*/*",
+				"Effect": "Allow"
+			},
+			{
+				"Action": "cloudformation:DeleteStack",
+				"Resource": "arn:*:cloudformation:*:*:stack/*/*",
+				"Effect": "Allow"
+			},
+			{
+				"Action": "ec2:CreateTags",
+				"Resource": "arn:*:ec2:*::image/*",
+				"Effect": "Allow"
+			},
+			{
+				"Action": "tag:TagResources",
+				"Resource": "*",
+				"Effect": "Allow"
+			},
+			{
+				"Action": [
+					"lambda:DeleteFunction",
+					"lambda:RemovePermission"
+				],
+				"Resource": "arn:*:lambda:*:*:function:ParallelClusterImage-*",
+				"Effect": "Allow"
+			},
+			{
+				"Action": "logs:DeleteLogGroup",
+				"Resource": "arn:*:logs:*:*:log-group:/aws/lambda/ParallelClusterImage-*:*",
+				"Effect": "Allow"
+			},
+			{
+				"Action": [
+					"SNS:GetTopicAttributes",
+					"SNS:DeleteTopic",
+					"SNS:GetSubscriptionAttributes",
+					"SNS:Unsubscribe"
+				],
+				"Resource": "arn:*:sns:*:*:ParallelClusterImage-*",
+				"Effect": "Allow"
+			}
+		]
+	}
+  )
 }
 
-
 resource "aws_iam_role_policy_attachment" "admin_role_for_lambda_policy_attachment" {
-  role       = aws_iam_role.admin_role_for_lambda.name
-  policy_arn = data.aws_iam_policy.administrator_access_policy.arn
+  role       = aws_iam_role.cleanup_lambda_role.name
+  policy_arn = aws_iam_policy.cleanup_lambda_policy.arn
 }
 
 // Null resource allows us to use built-in test functions above
@@ -280,7 +379,7 @@ data "null_data_source" "values" {
 			  "SubnetId": aws_default_subnet.public_az1.id,
               "SecurityGroupIds": [aws_default_security_group.default.id],
               "UpdateOsPackages": {"Enabled": false},
-              "Iam": {"CleanupLambdaRole": resource.aws_iam_role.admin_role_for_lambda.arn}
+              "Iam": {"CleanupLambdaRole": resource.aws_iam_role.cleanup_lambda_role.arn}
       }
     })
 	}
