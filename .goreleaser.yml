@@ -29,21 +29,21 @@ builds:
   ignore:
     - goos: darwin
       goarch: '386'
-  binary: 'terraform-provider-pcluster_v{{ .Version }}'
+  binary: 'terraform-provider-aws-parallelcluster_v{{ .Version }}'
 archives:
 - format: zip
-  name_template: 'terraform-provider-pcluster_{{ .Version }}_{{ .Os }}_{{ .Arch }}'
+  name_template: 'terraform-provider-aws-parallelcluster_{{ .Version }}_{{ .Os }}_{{ .Arch }}'
 checksum:
   extra_files:
     - glob: 'terraform-registry-manifest.json'
-      name_template: 'terraform-provider-pcluster_{{ .Version }}_manifest.json'
+      name_template: 'terraform-provider-aws-parallelcluster_{{ .Version }}_manifest.json'
   # This file is expected by terraform registry
-  name_template: 'terraform-provider-pcluster_{{ .Version }}_SHA256SUMS'
+  name_template: 'terraform-provider-aws-parallelcluster_{{ .Version }}_SHA256SUMS'
   algorithm: sha256
 signs:
   - artifacts: checksum
     args:
-      # if you are using this in a GitHub action or some other automated pipeline, you 
+      # if you are using this in a GitHub action or some other automated pipeline, you
       # need to pass the batch flag to indicate its not interactive.
       - "--batch"
       - "--local-user"
@@ -55,7 +55,7 @@ signs:
 release:
   extra_files:
     - glob: 'terraform-registry-manifest.json'
-      name_template: 'terraform-provider-pcluster_{{ .Version }}_manifest.json'
+      name_template: 'terraform-provider-aws-parallelcluster_{{ .Version }}_manifest.json'
   draft: true
 changelog:
   disable: true
