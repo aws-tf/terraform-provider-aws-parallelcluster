@@ -49,7 +49,10 @@ Resources:
             Condition:
               StringEquals:
                 token.actions.githubusercontent.com:aud: sts.amazonaws.com
-                token.actions.githubusercontent.com:sub: !Sub repo:${Organization}/${ProviderRepository}:ref:refs/heads/main
+              ForAnyValue:StringLike:
+                token.actions.githubusercontent.com:sub:
+                  - !Sub repo:${Organization}/${ProviderRepository}:ref:refs/heads/main
+                  - !Sub repo:${Organization}/${ProviderRepository}:ref:refs/tags/v*
       ManagedPolicyArns:
         - !Ref ProviderE2ETestExecutionPolicy
       MaxSessionDuration: 7200
@@ -67,7 +70,10 @@ Resources:
             Condition:
               StringEquals:
                 token.actions.githubusercontent.com:aud: sts.amazonaws.com
-                token.actions.githubusercontent.com:sub: !Sub repo:${Organization}/${ModuleRepository}:ref:refs/heads/main
+              ForAnyValue:StringLike:
+                token.actions.githubusercontent.com:sub:
+                  - !Sub repo:${Organization}/${ModuleRepository}:ref:refs/heads/main
+                  - !Sub repo:${Organization}/${ModuleRepository}:ref:refs/tags/v*
       ManagedPolicyArns:
         - !Ref ModuleE2ETestExecutionPolicy
       MaxSessionDuration: 7200
