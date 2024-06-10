@@ -23,10 +23,10 @@ provider "registry.terraform.io/hashicorp/aws" {
   ]
 }
 
-provider "terraform.local/local/pcluster" {
-  version     = "3.9.0-1"
-  constraints = "3.9.0-1"
+provider "terraform.local/local/aws-parallelcluster" {
+  version     = "1.0.0-alpha"
+  constraints = "1.0.0-alpha"
   hashes = [
-    "h1:KRuyQ66Soev73nHIKWp01Ch5nbonPFWaR63npmXjpNw=",
+    "h1:1W4ez7Bdrm2KCVqTqG3ISrmIw+k++WqiPfkeeKFf8Io=",
   ]
 }
