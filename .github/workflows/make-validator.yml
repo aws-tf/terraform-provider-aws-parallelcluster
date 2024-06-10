@@ -1,4 +1,4 @@
-name: make-validator 
+name: make-validator
 on:
   push:
     branches:
@@ -6,11 +6,11 @@ on:
   pull_request:
 permissions:
   contents: read
-env: 
+env:
   BUILDS: darwin_amd64 darwin_arm64 linux_amd64 windows_amd64
   VERSION: 0.0.0-MakeValidator
-  INSTALL_PATH: .terraform.d/plugins/terraform.local/local/pcluster
-  BINARY_PREFIX: terraform-provider-pcluster
+  INSTALL_PATH: .terraform.d/plugins/terraform.local/local/aws-parallelcluster
+  BINARY_PREFIX: terraform-provider-aws-parallelcluster
 jobs:
   make:
     name: make
@@ -20,7 +20,7 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version-file: 'go.mod'
-          cache: true 
+          cache: true
       - run: make build
       - name: Post build check
         run: |

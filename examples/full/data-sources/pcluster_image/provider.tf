@@ -18,11 +18,11 @@ provider "pcluster" {
 }
 
 terraform {
-  required_version = ">= 1.5.0"
+  required_version = ">= 1.5.7"
   required_providers {
     pcluster = {
-      source  = "terraform.local/local/pcluster"
-      version = "0.0.1"
+      source  = "terraform.local/local/aws-parallelcluster"
+      version = "1.0.0-alpha"
     }
     local = {
       source  = "hashicorp/local"
