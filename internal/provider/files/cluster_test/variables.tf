@@ -75,13 +75,13 @@ variable "head_node_type" {
 
 variable "role_arn" {
   type        = string
-  description = "The role used by the pcluster provider."
+  description = "The role used by the ParallelCluster provider."
   default     = null
 }
 
 variable "endpoint" {
   type        = string
-  description = "The endpoint used by the pcluster provider."
+  description = "The endpoint used by the ParallelCluster provider."
   default     = null
 }
 

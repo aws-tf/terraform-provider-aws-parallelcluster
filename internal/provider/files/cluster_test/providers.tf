@@ -17,7 +17,7 @@
  *  key pair. These are necessary resources for the API to deploy and manage clusters.
  */
 
-provider "pcluster" {
+provider "aws-parallelcluster" {
   endpoint       = var.endpoint
   role_arn       = var.role_arn
   use_user_role  = var.use_user_role

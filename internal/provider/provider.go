@@ -74,7 +74,7 @@ func (p *PclusterProvider) Metadata(
 	req provider.MetadataRequest,
 	resp *provider.MetadataResponse,
 ) {
-	resp.TypeName = "pcluster"
+	resp.TypeName = "aws-parallelcluster"
 	resp.Version = p.version
 }
 
