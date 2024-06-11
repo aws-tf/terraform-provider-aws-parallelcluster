@@ -100,13 +100,13 @@ func TestEnd2EndImage(t *testing.T) {
 				Config: testConfig.imageResourceConfig(),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrPair(
-						"pcluster_image."+testConfig.resourceName,
+						"aws-parallelcluster_image."+testConfig.resourceName,
 						"image_configuration",
 						"data.null_data_source.values",
 						"inputs.image_config",
 					),
 					resource.TestCheckResourceAttr(
-						"pcluster_image."+testConfig.resourceName,
+						"aws-parallelcluster_image."+testConfig.resourceName,
 						"image_build_status",
 						string(openapi.IMAGEBUILDSTATUS_BUILD_COMPLETE),
 					),
@@ -114,7 +114,7 @@ func TestEnd2EndImage(t *testing.T) {
 			},
 			// ImportState testing
 			{
-				ResourceName:      "pcluster_image." + testResourceName,
+				ResourceName:      "aws-parallelcluster_image." + testResourceName,
 				ImportState:       true,
 				ImportStateVerify: true,
 				ImportStateVerifyIgnore: []string{
@@ -128,23 +128,23 @@ func TestEnd2EndImage(t *testing.T) {
 				Config: testConfig.imageDataSourceConfig(),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(
-						"data.pcluster_image."+testConfig.resourceName,
+						"data.aws-parallelcluster_image."+testConfig.resourceName,
 						"image.imageId",
 						testConfig.imageId,
 					),
 					resource.TestCheckResourceAttr(
-						"pcluster_image."+testConfig.resourceName,
+						"aws-parallelcluster_image."+testConfig.resourceName,
 						"image_build_status",
 						string(openapi.IMAGEBUILDSTATUS_BUILD_COMPLETE),
 					),
 					resource.TestCheckResourceAttrPair(
-						"data.pcluster_image."+testConfig.resourceName,
+						"data.aws-parallelcluster_image."+testConfig.resourceName,
 						"image.imageConfiguration",
-						"pcluster_image."+testConfig.resourceName,
+						"aws-parallelcluster_image."+testConfig.resourceName,
 						"image_configuration",
 					),
 					resource.TestCheckResourceAttrSet(
-						"data.pcluster_image."+testConfig.resourceName,
+						"data.aws-parallelcluster_image."+testConfig.resourceName,
 						"log_streams.#",
 					),
 				),
@@ -154,7 +154,7 @@ func TestEnd2EndImage(t *testing.T) {
 				Config: testConfig.imageListDataSourceConfig(),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet(
-						"data.pcluster_list_images."+testConfig.resourceName,
+						"data.aws-parallelcluster_list_images."+testConfig.resourceName,
 						"images.#",
 					),
 				),
@@ -165,7 +165,7 @@ func TestEnd2EndImage(t *testing.T) {
 
 func (c *imageTestConfig) providerConfig() string {
 	return fmt.Sprintf(`
-provider "pcluster" {
+provider "aws-parallelcluster" {
   role_arn = %s
   use_user_role = %s
   api_stack_name = %s
@@ -178,7 +178,7 @@ provider "pcluster" {
 
 func (c *imageTestConfig) imageListDataSourceConfig() string {
 	dataSource := fmt.Sprintf(`
-data "pcluster_list_images" "%s" {
+data "aws-parallelcluster_list_images" "%s" {
   image_status = "AVAILABLE"
   region = "%s"
 }
@@ -190,7 +190,7 @@ data "pcluster_list_images" "%s" {
 
 func (c *imageTestConfig) imageDataSourceConfig() string {
 	dataSource := fmt.Sprintf(`
-data "pcluster_image" "%s" {
+data "aws-parallelcluster_image" "%s" {
   image_id = "%s"
 }
 
@@ -235,7 +235,7 @@ resource "aws_default_security_group" "default" {
   }
 }
 
-data "pcluster_list_official_images" "parent_image" {
+data "aws-parallelcluster_list_official_images" "parent_image" {
         region = local.default_region
         os = "alinux2"
         architecture = "x86_64"
@@ -375,7 +375,7 @@ data "null_data_source" "values" {
     image_config = yamlencode({
       "Build":{
               "InstanceType": "c5.2xlarge",
-              "ParentImage": data.pcluster_list_official_images.parent_image.official_images[0].amiId,
+              "ParentImage": data.aws-parallelcluster_list_official_images.parent_image.official_images[0].amiId,
 			  "SubnetId": aws_default_subnet.public_az1.id,
               "SecurityGroupIds": [aws_default_security_group.default.id],
               "UpdateOsPackages": {"Enabled": false},
@@ -385,7 +385,7 @@ data "null_data_source" "values" {
 	}
 }
 
-resource "pcluster_image" "%s" {
+resource "aws-parallelcluster_image" "%s" {
   image_id = "%s"
   image_configuration = data.null_data_source.values.inputs.image_config
   rollback_on_failure = false

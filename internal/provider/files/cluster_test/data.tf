@@ -17,12 +17,12 @@
  *  key pair. These are necessary resources for the API to deploy and manage clusters.
  */
 
-data "pcluster_list_clusters" "test" {
+data "aws-parallelcluster_list_clusters" "test" {
   region     = var.region
-  depends_on = [pcluster_cluster.test]
+  depends_on = [aws-parallelcluster_cluster.test]
 }
 
-data "pcluster_cluster" "test" {
+data "aws-parallelcluster_cluster" "test" {
   cluster_name = var.cluster_name
-  depends_on   = [pcluster_cluster.test]
+  depends_on   = [aws-parallelcluster_cluster.test]
 }

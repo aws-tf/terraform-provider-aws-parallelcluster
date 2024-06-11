@@ -18,13 +18,13 @@
  */
 
 output "cluster_resource" {
-  value = resource.pcluster_cluster.test
+  value = resource.aws-parallelcluster_cluster.test
 }
 
 output "cluster_compute_fleet_resource" {
-  value = resource.pcluster_compute_fleet_status.test.status
+  value = resource.aws-parallelcluster_compute_fleet_status.test.status
 }
 
 output "cluster_data_source" {
-  value = data.pcluster_cluster.test
+  value = data.aws-parallelcluster_cluster.test
 }

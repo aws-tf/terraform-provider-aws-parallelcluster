@@ -17,4 +17,4 @@
  *  key pair. These are necessary resources for the API to deploy and manage clusters.
  */
 
-resource "pcluster_cluster" "test" {}
+resource "aws-parallelcluster_cluster" "test" {}

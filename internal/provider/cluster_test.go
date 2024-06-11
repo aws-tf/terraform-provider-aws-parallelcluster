@@ -109,12 +109,12 @@ func TestEnd2EndCluster(t *testing.T) {
 				ConfigVariables:          configVariables,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(
-						"pcluster_cluster."+testResourceName,
+						"aws-parallelcluster_cluster."+testResourceName,
 						"cluster_status",
 						string(openapi.CLUSTERSTATUS_CREATE_COMPLETE),
 					),
 					resource.TestCheckResourceAttr(
-						"pcluster_cluster."+testResourceName,
+						"aws-parallelcluster_cluster."+testResourceName,
 						"cloudformation_stack_status",
 						string(openapi.CLOUDFORMATIONRESOURCESTATUS_CREATE_COMPLETE),
 					),
@@ -125,7 +125,7 @@ func TestEnd2EndCluster(t *testing.T) {
 				ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 				ConfigDirectory:          config.StaticDirectory(configImportDirectory),
 				ConfigVariables:          configVariables,
-				ResourceName:             "pcluster_cluster." + testResourceName,
+				ResourceName:             "aws-parallelcluster_cluster." + testResourceName,
 				ImportState:              true,
 				ImportStateVerify:        true,
 				ImportStateVerifyIgnore:  []string{"suppress_validators", "validation_failure_level"},
@@ -137,12 +137,12 @@ func TestEnd2EndCluster(t *testing.T) {
 				ConfigVariables:          configUpdateVariables,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(
-						"pcluster_cluster."+testResourceName,
+						"aws-parallelcluster_cluster."+testResourceName,
 						"cluster_status",
 						string(openapi.CLUSTERSTATUS_UPDATE_COMPLETE),
 					),
 					resource.TestCheckResourceAttr(
-						"pcluster_cluster."+testResourceName,
+						"aws-parallelcluster_cluster."+testResourceName,
 						"cloudformation_stack_status",
 						string(openapi.CLOUDFORMATIONRESOURCESTATUS_UPDATE_COMPLETE),
 					),
@@ -155,16 +155,16 @@ func TestEnd2EndCluster(t *testing.T) {
 				ConfigVariables:          configUpdateVariables,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(
-						"data.pcluster_cluster."+testResourceName,
+						"data.aws-parallelcluster_cluster."+testResourceName,
 						"cluster.clusterName",
 						clusterName,
 					),
 					resource.TestCheckResourceAttrSet(
-						"data.pcluster_cluster."+testResourceName,
+						"data.aws-parallelcluster_cluster."+testResourceName,
 						"stack_events.#",
 					),
 					resource.TestCheckResourceAttrSet(
-						"data.pcluster_cluster."+testResourceName,
+						"data.aws-parallelcluster_cluster."+testResourceName,
 						"log_streams.#",
 					),
 				),
@@ -176,7 +176,7 @@ func TestEnd2EndCluster(t *testing.T) {
 				ConfigVariables:          configUpdateVariables,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet(
-						"data.pcluster_list_clusters."+testResourceName,
+						"data.aws-parallelcluster_list_clusters."+testResourceName,
 						"clusters.#",
 					),
 				),
