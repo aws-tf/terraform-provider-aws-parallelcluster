@@ -21,7 +21,7 @@ provider "registry.terraform.io/hashicorp/local" {
   ]
 }
 
-provider "terraform.local/local/aws-parallelcluster" {
+provider "aws-tf/aws-parallelcluster" {
   version     = "1.0.0-alpha"
   constraints = "1.0.0-alpha"
   hashes = [
