@@ -124,7 +124,7 @@ With AWS ParallelCluster, you can quickly build and deploy proof of concept and 
 				Sensitive:           true,
 			},
 			"api_name": schema.StringAttribute{
-				MarkdownDescription: "The name of the ParallelCluster api. Used to retrieve the api endpoint if not given. Defaults to ParallelCluster.",
+				MarkdownDescription: "The name of the ParallelCluster API. Used to retrieve the api endpoint if not given. Defaults to ParallelCluster.",
 				Optional:            true,
 			},
 		},

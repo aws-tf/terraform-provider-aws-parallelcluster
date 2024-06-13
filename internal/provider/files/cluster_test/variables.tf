@@ -93,6 +93,6 @@ variable "use_user_role" {
 
 variable "api_stack_name" {
   type        = string
-  description = "Retrieve the api stack endpoint from the given CloudFormation stack name."
+  description = "Retrieve the ParallelCluster API stack endpoint from the given CloudFormation stack name."
   default     = null
 }
