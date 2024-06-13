@@ -42,7 +42,7 @@ variable "parent_image" {
 
 variable "profile" {
   type        = string
-  description = "The aws profile to use."
+  description = "The AWS profile to use."
   default     = null
 }
 
