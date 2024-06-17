@@ -10,6 +10,7 @@ logs/
 
 # Terraform
 .terraform/
+.terraform.lock.hcl
 tfplan
 terraform.tfstate
 terraform.tfstate.backup

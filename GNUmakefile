@@ -1,11 +1,11 @@
 default: build
 
 ifndef VERSION
-VERSION = 1.0.0-alpha
+VERSION = 1.0.0
 endif
 
-install_path = ~/.terraform.d/plugins/terraform.local/local/pcluster/$(VERSION)
-file_name = terraform-provider-pcluster_$(VERSION)
+install_path = ~/.terraform.d/plugins/terraform.local/local/aws-parallelcluster/$(VERSION)
+file_name = terraform-provider-aws-parallelcluster_$(VERSION)
 
 .PHONY: testacc darwin_arm64 darwin_amd64 windows_amd64 linux_amd64 all install
 

@@ -23,13 +23,13 @@
 
 variable "role_arn" {
   type        = string
-  description = "The role used by the pcluster provider."
+  description = "The role used by the ParallelCluster provider."
   default     = null
 }
 
 variable "endpoint" {
   type        = string
-  description = "The endpoint used by the pcluster provider."
+  description = "The endpoint used by the ParallelCluster provider."
   default     = null
 }
 
@@ -41,6 +41,6 @@ variable "use_user_role" {
 
 variable "api_stack_name" {
   type        = string
-  description = "Retrieve the api stack endpoint from the given CloudFormation stack name."
+  description = "Retrieve the ParallelCluster API stack endpoint from the given CloudFormation stack name."
   default     = null
 }

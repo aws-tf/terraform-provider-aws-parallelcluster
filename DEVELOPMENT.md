@@ -24,7 +24,7 @@ It can be generated with:
 openapi-generator-cli generate -g go -i path-to-openapi-pcluster-spec -o internal/provider/openapi -p 'structPrefix=true,withAWSV4Signature=true,enumClassPrefix=true'
 ```
 
-The pcluster spec file can be retrieved from https://github.com/aws/aws-parallelcluster/tree/develop/api/spec/openapi.
+The ParallelCluster spec file can be retrieved from https://github.com/aws/aws-parallelcluster/tree/develop/api/spec/openapi.
 
 See https://openapi-generator.tech/docs/installation/ for openapi generator installation instructions.
 
@@ -50,8 +50,8 @@ In order to use the local provider, a configuration block like the following may
 ```Terraform
 terraform {
   required_providers {
-    pcluster = {
-      source  = "terraform.local/local/pcluster"
+    aws-parallelcluster = {
+      source  = "terraform.local/local/aws-parallelcluster"
       version = "1.0.0"
     }
   }

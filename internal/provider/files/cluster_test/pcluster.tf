@@ -69,7 +69,7 @@ locals {
   }
 }
 
-resource "pcluster_cluster" "test" {
+resource "aws-parallelcluster_cluster" "test" {
   cluster_name        = var.cluster_name
   region              = var.region
   validation_failure_level = "WARNING"
@@ -85,8 +85,8 @@ resource "pcluster_cluster" "test" {
   ]
 }
 
-resource "pcluster_compute_fleet_status" "test" {
+resource "aws-parallelcluster_compute_fleet_status" "test" {
   cluster_name   = var.cluster_name
   status_request = "START_REQUESTED"
-  depends_on     = [pcluster_cluster.test]
+  depends_on     = [aws-parallelcluster_cluster.test]
 }

@@ -408,7 +408,6 @@ func (r *ClusterResource) Create(
 
 	if cluster, ok := httpResp.GetClusterOk(); ok {
 		populateClusterResourceInfo(cluster, &data)
-		resp.Diagnostics.AddWarning(":::", *data.Region.ValueStringPointer())
 		clusterDesc, err := r.waitClusterReady(
 			reqCtx,
 			data.ClusterName.ValueString(),

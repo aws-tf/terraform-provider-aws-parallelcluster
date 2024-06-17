@@ -1,6 +1,13 @@
 # AWS ParallelCluster Provider for Terraform
 The Terraform provider to deploy High Performance Computing (HPC) clusters on AWS with [AWS ParallelCluster](https://aws.amazon.com/hpc/parallelcluster/).
 
+## Compatibility Matrix
+The following matrix describes the compatibility between the provider and the ParallelCluster versions.
+
+| Provider version | ParallelCluster version |
+|------------------|-------------------------|
+| 1.0.0            | 3.10.0+                 |
+
 ## Issues
 
 Please open a GitHub issue for any feedback or issues: https://github.com/aws/aws-parallelcluster/issues.
