@@ -27,7 +27,7 @@ terraform {
   required_providers {
     aws-parallelcluster = {
       source  = "aws-tf/aws-parallelcluster"
-      version = "1.0.0-alpha"
+      version = "1.0.0"
     }
   }
 }
@@ -38,7 +38,7 @@ terraform {
 
 ### Optional
 
-- `api_name` (String) The name of the ParallelCluster api. Used to retrieve the api endpoint if not given. Defaults to ParallelCluster.
+- `api_name` (String) The name of the ParallelCluster API. Used to retrieve the api endpoint if not given. Defaults to ParallelCluster.
 - `api_stack_name` (String) The ParallelCluster cloudformation stack arn containing the endpoint and role outputs.
 - `aws_key` (String) The aws key used for deploying resources and query data sources.
 - `aws_secret` (String, Sensitive) The aws secret used for deploying resources and query data sources.

@@ -1,7 +1,7 @@
 default: build
 
 ifndef VERSION
-VERSION = 1.0.0-alpha
+VERSION = 1.0.0
 endif
 
 install_path = ~/.terraform.d/plugins/terraform.local/local/aws-parallelcluster/$(VERSION)
