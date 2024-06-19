@@ -158,8 +158,8 @@ Resources:
             Action:
               - s3:GetObject
             Resource:
-              - !Sub arn:${AWS::Partition}:s3:::*-aws-parallelcluster/parallelcluster/*
               - !Sub arn:${AWS::Partition}:s3:::*-aws-parallelcluster/parallelcluster/*/api/ParallelCluster.openapi.yaml
+              - !Sub arn:${AWS::Partition}:s3:::*-aws-parallelcluster/parallelcluster/*/layers/aws-parallelcluster/lambda-layer.zip
             Sid: S3ParallelClusterArtifacts
           - Effect: Allow
             Action:
