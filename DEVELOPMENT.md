@@ -21,7 +21,7 @@ It should be regenerated when a new release of ParallelCluster introduces change
 It can be generated with:
 
 ```shell
-openapi-generator-cli generate -g go -i path-to-openapi-pcluster-spec -o internal/provider/openapi -p 'structPrefix=true,withAWSV4Signature=true,enumClassPrefix=true'
+openapi-generator generate -g go -i /path/to/aws-parallelcluster/api/spec/openapi/ParallelCluster.openapi.yaml -o internal/provider/openapi -p 'structPrefix=true,withAWSV4Signature=true,enumClassPrefix=true'
 ```
 
 The ParallelCluster spec file can be retrieved from https://github.com/aws/aws-parallelcluster/tree/develop/api/spec/openapi.
