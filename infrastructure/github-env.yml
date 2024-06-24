@@ -52,6 +52,7 @@ Resources:
               ForAnyValue:StringLike:
                 token.actions.githubusercontent.com:sub:
                   - !Sub repo:${Organization}/${ProviderRepository}:ref:refs/heads/main
+                  - !Sub repo:${Organization}/${ProviderRepository}:ref:refs/heads/wip*
                   - !Sub repo:${Organization}/${ProviderRepository}:ref:refs/tags/v*
       ManagedPolicyArns:
         - !Ref ProviderE2ETestExecutionPolicy
@@ -73,6 +74,7 @@ Resources:
               ForAnyValue:StringLike:
                 token.actions.githubusercontent.com:sub:
                   - !Sub repo:${Organization}/${ModuleRepository}:ref:refs/heads/main
+                  - !Sub repo:${Organization}/${ModuleRepository}:ref:refs/heads/wip*
                   - !Sub repo:${Organization}/${ModuleRepository}:ref:refs/tags/v*
       ManagedPolicyArns:
         - !Ref ModuleE2ETestExecutionPolicy
