@@ -2,7 +2,7 @@ openapi: 3.0.2
 info:
   description: ParallelCluster API
   title: ParallelCluster
-  version: 3.8.0
+  version: 3.10.0
 servers:
 - url: /
 security:
@@ -1869,6 +1869,8 @@ components:
     BadRequestExceptionResponseContent:
       description: This exception is thrown when a client calls an API with wrong
         parameters.
+      example:
+        message: message
       properties:
         message:
           type: string
@@ -1876,6 +1878,17 @@ components:
     BuildImageBadRequestExceptionResponseContent:
       description: This exception is thrown when a client calls the BuildImage API
         with an invalid request. This includes an error due to invalid image configuration.
+      example:
+        configurationValidationErrors:
+        - level: INFO
+          id: id
+          type: type
+          message: message
+        - level: INFO
+          id: id
+          type: type
+          message: message
+        message: message
       properties:
         message:
           type: string
@@ -1904,19 +1917,19 @@ components:
       example:
         image:
           imageId: imageId
-          imageBuildStatus: null
-          cloudformationStackStatus: null
+          imageBuildStatus: BUILD_IN_PROGRESS
+          cloudformationStackStatus: CREATE_IN_PROGRESS
           cloudformationStackArn: cloudformationStackArn
           ec2AmiInfo:
             amiId: amiId
           region: region
           version: version
         validationMessages:
-        - level: null
+        - level: INFO
           id: id
           type: type
           message: message
-        - level: null
+        - level: INFO
           id: id
           type: type
           message: message
@@ -1969,15 +1982,23 @@ components:
       - CREATE_IN_PROGRESS
       - CREATE_FAILED
       - CREATE_COMPLETE
+      - IMPORT_IN_PROGRESS
+      - IMPORT_COMPLETE
+      - IMPORT_ROLLBACK_IN_PROGRESS
+      - IMPORT_ROLLBACK_FAILED
+      - IMPORT_ROLLBACK_COMPLETE
       - ROLLBACK_IN_PROGRESS
       - ROLLBACK_FAILED
       - ROLLBACK_COMPLETE
       - DELETE_IN_PROGRESS
       - DELETE_FAILED
       - DELETE_COMPLETE
+      - REVIEW_IN_PROGRESS
       - UPDATE_IN_PROGRESS
+      - UPDATE_FAILED
       - UPDATE_COMPLETE_CLEANUP_IN_PROGRESS
       - UPDATE_COMPLETE
+      - UPDATE_FAILED
       - UPDATE_ROLLBACK_IN_PROGRESS
       - UPDATE_ROLLBACK_FAILED
       - UPDATE_ROLLBACK_COMPLETE_CLEANUP_IN_PROGRESS
@@ -1999,11 +2020,11 @@ components:
             version: version
           type: type
         clusterName: clusterName
-        cloudformationStackStatus: null
+        cloudformationStackStatus: CREATE_IN_PROGRESS
         cloudformationStackArn: cloudformationStackArn
         region: region
         version: version
-        clusterStatus: null
+        clusterStatus: CREATE_IN_PROGRESS
       properties:
         clusterName:
           description: Name of the cluster.
@@ -2039,8 +2060,8 @@ components:
         queueName: queueName
         publicIpAddress: publicIpAddress
         instanceType: instanceType
-        state: null
-        nodeType: null
+        state: pending
+        nodeType: HeadNode
         privateIpAddress: privateIpAddress
       properties:
         instanceId:
@@ -2106,7 +2127,7 @@ components:
       type: string
     ConfigValidationMessage:
       example:
-        level: null
+        level: INFO
         id: id
         type: type
         message: message
@@ -2126,6 +2147,8 @@ components:
     ConflictExceptionResponseContent:
       description: This exception is thrown when a client request to create/modify
         content would result in a conflict.
+      example:
+        message: message
       properties:
         message:
           type: string
@@ -2134,6 +2157,17 @@ components:
       description: This exception is thrown when a client calls the CreateCluster
         API with an invalid request. This includes an error due to invalid cluster
         configuration.
+      example:
+        configurationValidationErrors:
+        - level: INFO
+          id: id
+          type: type
+          message: message
+        - level: INFO
+          id: id
+          type: type
+          message: message
+        message: message
       properties:
         message:
           type: string
@@ -2167,17 +2201,17 @@ components:
               version: version
             type: type
           clusterName: clusterName
-          cloudformationStackStatus: null
+          cloudformationStackStatus: CREATE_IN_PROGRESS
           cloudformationStackArn: cloudformationStackArn
           region: region
           version: version
-          clusterStatus: null
+          clusterStatus: CREATE_IN_PROGRESS
         validationMessages:
-        - level: null
+        - level: INFO
           id: id
           type: type
           message: message
-        - level: null
+        - level: INFO
           id: id
           type: type
           message: message
@@ -2202,11 +2236,11 @@ components:
               version: version
             type: type
           clusterName: clusterName
-          cloudformationStackStatus: null
+          cloudformationStackStatus: CREATE_IN_PROGRESS
           cloudformationStackArn: cloudformationStackArn
           region: region
           version: version
-          clusterStatus: null
+          clusterStatus: CREATE_IN_PROGRESS
       properties:
         cluster:
           $ref: '#/components/schemas/ClusterInfoSummary'
@@ -2217,8 +2251,8 @@ components:
       example:
         image:
           imageId: imageId
-          imageBuildStatus: null
-          cloudformationStackStatus: null
+          imageBuildStatus: BUILD_IN_PROGRESS
+          cloudformationStackStatus: CREATE_IN_PROGRESS
           cloudformationStackArn: cloudformationStackArn
           ec2AmiInfo:
             amiId: amiId
@@ -2238,16 +2272,16 @@ components:
           queueName: queueName
           publicIpAddress: publicIpAddress
           instanceType: instanceType
-          state: null
-          nodeType: null
+          state: pending
+          nodeType: HeadNode
           privateIpAddress: privateIpAddress
         - launchTime: 2000-01-23T04:56:07.000+00:00
           instanceId: instanceId
           queueName: queueName
           publicIpAddress: publicIpAddress
           instanceType: instanceType
-          state: null
-          nodeType: null
+          state: pending
+          nodeType: HeadNode
           privateIpAddress: privateIpAddress
         nextToken: nextToken
       properties:
@@ -2274,7 +2308,7 @@ components:
           address: address
           scheme: scheme
           healthyNodes: 0
-          status: null
+          status: pending
         version: version
         clusterConfiguration:
           url: url
@@ -2288,19 +2322,19 @@ components:
             name: name
             version: version
           type: type
-        cloudFormationStackStatus: null
+        cloudFormationStackStatus: CREATE_IN_PROGRESS
         clusterName: clusterName
-        computeFleetStatus: null
+        computeFleetStatus: START_REQUESTED
         cloudformationStackArn: cloudformationStackArn
         lastUpdatedTime: 2000-01-23T04:56:07.000+00:00
         region: region
-        clusterStatus: null
+        clusterStatus: CREATE_IN_PROGRESS
         headNode:
           launchTime: 2000-01-23T04:56:07.000+00:00
           instanceId: instanceId
           publicIpAddress: publicIpAddress
           instanceType: instanceType
-          state: null
+          state: pending
           privateIpAddress: privateIpAddress
       properties:
         clusterName:
@@ -2364,7 +2398,7 @@ components:
       type: object
     DescribeComputeFleetResponseContent:
       example:
-        status: null
+        status: START_REQUESTED
         lastStatusUpdatedTime: 2000-01-23T04:56:07.000+00:00
       properties:
         status:
@@ -2386,13 +2420,13 @@ components:
           key: key
         - value: value
           key: key
-        imagebuilderImageStatus: null
+        imagebuilderImageStatus: PENDING
         creationTime: 2000-01-23T04:56:07.000+00:00
         version: version
         imageConfiguration:
           url: url
-        imageBuildStatus: null
-        cloudformationStackStatus: null
+        imageBuildStatus: BUILD_IN_PROGRESS
+        cloudformationStackStatus: CREATE_IN_PROGRESS
         imageBuildLogsArn: imageBuildLogsArn
         cloudformationStackArn: cloudformationStackArn
         region: region
@@ -2401,7 +2435,7 @@ components:
           amiName: amiName
           amiId: amiId
           description: description
-          state: null
+          state: PENDING
           tags:
           - value: value
             key: key
@@ -2463,6 +2497,24 @@ components:
     DryrunOperationExceptionResponseContent:
       description: Communicates that the operation would have succeeded without the
         dryrun flag.
+      example:
+        validationMessages:
+        - level: INFO
+          id: id
+          type: type
+          message: message
+        - level: INFO
+          id: id
+          type: type
+          message: message
+        message: message
+        changeSet:
+        - parameter: parameter
+          requestedValue: requestedValue
+          currentValue: currentValue
+        - parameter: parameter
+          requestedValue: requestedValue
+          currentValue: currentValue
       properties:
         message:
           type: string
@@ -2484,7 +2536,7 @@ components:
         instanceId: instanceId
         publicIpAddress: publicIpAddress
         instanceType: instanceType
-        state: null
+        state: pending
         privateIpAddress: privateIpAddress
       properties:
         instanceId:
@@ -2512,7 +2564,7 @@ components:
         amiName: amiName
         amiId: amiId
         description: description
-        state: null
+        state: PENDING
         tags:
         - value: value
           key: key
@@ -2601,7 +2653,7 @@ components:
         events:
         - eventId: eventId
           physicalResourceId: physicalResourceId
-          resourceStatus: null
+          resourceStatus: CREATE_IN_PROGRESS
           resourceStatusReason: resourceStatusReason
           clientRequestToken: clientRequestToken
           resourceProperties: resourceProperties
@@ -2612,7 +2664,7 @@ components:
           timestamp: 2000-01-23T04:56:07.000+00:00
         - eventId: eventId
           physicalResourceId: physicalResourceId
-          resourceStatus: null
+          resourceStatus: CREATE_IN_PROGRESS
           resourceStatusReason: resourceStatusReason
           clientRequestToken: clientRequestToken
           resourceProperties: resourceProperties
@@ -2657,7 +2709,7 @@ components:
         events:
         - eventId: eventId
           physicalResourceId: physicalResourceId
-          resourceStatus: null
+          resourceStatus: CREATE_IN_PROGRESS
           resourceStatusReason: resourceStatusReason
           clientRequestToken: clientRequestToken
           resourceProperties: resourceProperties
@@ -2668,7 +2720,7 @@ components:
           timestamp: 2000-01-23T04:56:07.000+00:00
         - eventId: eventId
           physicalResourceId: physicalResourceId
-          resourceStatus: null
+          resourceStatus: CREATE_IN_PROGRESS
           resourceStatusReason: resourceStatusReason
           clientRequestToken: clientRequestToken
           resourceProperties: resourceProperties
@@ -2720,8 +2772,8 @@ components:
     ImageInfoSummary:
       example:
         imageId: imageId
-        imageBuildStatus: null
-        cloudformationStackStatus: null
+        imageBuildStatus: BUILD_IN_PROGRESS
+        cloudformationStackStatus: CREATE_IN_PROGRESS
         cloudformationStackArn: cloudformationStackArn
         ec2AmiInfo:
           amiId: amiId
@@ -2770,6 +2822,8 @@ components:
       type: string
     InternalServiceExceptionResponseContent:
       description: This exception is thrown on an unhandled service error.
+      example:
+        message: message
       properties:
         message:
           type: string
@@ -2777,6 +2831,8 @@ components:
     LimitExceededExceptionResponseContent:
       description: The client is sending more than the allowed number of requests
         per unit of time.
+      example:
+        message: message
       properties:
         message:
           type: string
@@ -2820,22 +2876,22 @@ components:
               version: version
             type: type
           clusterName: clusterName
-          cloudformationStackStatus: null
+          cloudformationStackStatus: CREATE_IN_PROGRESS
           cloudformationStackArn: cloudformationStackArn
           region: region
           version: version
-          clusterStatus: null
+          clusterStatus: CREATE_IN_PROGRESS
         - scheduler:
             metadata:
               name: name
               version: version
             type: type
           clusterName: clusterName
-          cloudformationStackStatus: null
+          cloudformationStackStatus: CREATE_IN_PROGRESS
           cloudformationStackArn: cloudformationStackArn
           region: region
           version: version
-          clusterStatus: null
+          clusterStatus: CREATE_IN_PROGRESS
       properties:
         nextToken:
           description: Token to use for paginated requests.
@@ -2880,16 +2936,16 @@ components:
       example:
         images:
         - imageId: imageId
-          imageBuildStatus: null
-          cloudformationStackStatus: null
+          imageBuildStatus: BUILD_IN_PROGRESS
+          cloudformationStackStatus: CREATE_IN_PROGRESS
           cloudformationStackArn: cloudformationStackArn
           ec2AmiInfo:
             amiId: amiId
           region: region
           version: version
         - imageId: imageId
-          imageBuildStatus: null
-          cloudformationStackStatus: null
+          imageBuildStatus: BUILD_IN_PROGRESS
+          cloudformationStackStatus: CREATE_IN_PROGRESS
           cloudformationStackArn: cloudformationStackArn
           ec2AmiInfo:
             amiId: amiId
@@ -2995,7 +3051,7 @@ components:
         address: address
         scheme: scheme
         healthyNodes: 0
-        status: null
+        status: pending
       properties:
         status:
           $ref: '#/components/schemas/LoginNodesState'
@@ -3036,6 +3092,8 @@ components:
       type: string
     NotFoundExceptionResponseContent:
       description: This exception is thrown when the requested entity is not found.
+      example:
+        message: message
       properties:
         message:
           type: string
@@ -3065,7 +3123,7 @@ components:
       example:
         eventId: eventId
         physicalResourceId: physicalResourceId
-        resourceStatus: null
+        resourceStatus: CREATE_IN_PROGRESS
         resourceStatusReason: resourceStatusReason
         clientRequestToken: clientRequestToken
         resourceProperties: resourceProperties
@@ -3134,6 +3192,8 @@ components:
     UnauthorizedClientErrorResponseContent:
       description: This exception is thrown when the client is not authorized to perform
         an action.
+      example:
+        message: message
       properties:
         message:
           type: string
@@ -3142,6 +3202,33 @@ components:
       description: This exception is thrown when a client calls the UpdateCluster
         API with an invalid request. This includes an error due to invalid cluster
         configuration and unsupported update.
+      example:
+        configurationValidationErrors:
+        - level: INFO
+          id: id
+          type: type
+          message: message
+        - level: INFO
+          id: id
+          type: type
+          message: message
+        message: message
+        updateValidationErrors:
+        - parameter: parameter
+          requestedValue: requestedValue
+          message: message
+          currentValue: currentValue
+        - parameter: parameter
+          requestedValue: requestedValue
+          message: message
+          currentValue: currentValue
+        changeSet:
+        - parameter: parameter
+          requestedValue: requestedValue
+          currentValue: currentValue
+        - parameter: parameter
+          requestedValue: requestedValue
+          currentValue: currentValue
       properties:
         message:
           type: string
@@ -3177,17 +3264,17 @@ components:
               version: version
             type: type
           clusterName: clusterName
-          cloudformationStackStatus: null
+          cloudformationStackStatus: CREATE_IN_PROGRESS
           cloudformationStackArn: cloudformationStackArn
           region: region
           version: version
-          clusterStatus: null
+          clusterStatus: CREATE_IN_PROGRESS
         validationMessages:
-        - level: null
+        - level: INFO
           id: id
           type: type
           message: message
-        - level: null
+        - level: INFO
           id: id
           type: type
           message: message
@@ -3218,7 +3305,7 @@ components:
       type: object
     UpdateComputeFleetRequestContent:
       example:
-        status: null
+        status: START_REQUESTED
       properties:
         status:
           $ref: '#/components/schemas/RequestedComputeFleetStatus'
@@ -3227,7 +3314,7 @@ components:
       type: object
     UpdateComputeFleetResponseContent:
       example:
-        status: null
+        status: START_REQUESTED
         lastStatusUpdatedTime: 2000-01-23T04:56:07.000+00:00
       properties:
         status:
@@ -3240,6 +3327,11 @@ components:
       - status
       type: object
     UpdateError:
+      example:
+        parameter: parameter
+        requestedValue: requestedValue
+        message: message
+        currentValue: currentValue
       properties:
         parameter:
           type: string
