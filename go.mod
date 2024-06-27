@@ -6,7 +6,7 @@ require (
 	github.com/aws-tf/terraform-provider-aws-parallelcluster/internal/provider/openapi v0.0.0-00010101000000-000000000000
 	github.com/aws/aws-sdk-go-v2 v1.30.0
 	github.com/aws/aws-sdk-go-v2/config v1.27.18
-	github.com/aws/aws-sdk-go-v2/service/apigateway v1.24.1
+	github.com/aws/aws-sdk-go-v2/service/apigateway v1.25.0
 	github.com/aws/aws-sdk-go-v2/service/cloudformation v1.52.1
 	github.com/aws/aws-sdk-go-v2/service/sts v1.29.1
 	github.com/hashicorp/terraform-plugin-docs v0.19.4
