@@ -34,6 +34,7 @@ var (
 	_                     datasource.DataSource = &ClusterDataSource{}
 	loginNodesObjectTypes                       = map[string]attr.Type{
 		"status":         types.StringType,
+		"poolName":       types.StringType,
 		"address":        types.StringType,
 		"scheme":         types.StringType,
 		"healthyNodes":   types.NumberType,
@@ -56,7 +57,9 @@ var (
 		},
 		"headNode":   types.MapType{ElemType: types.StringType},
 		"failures":   types.ListType{ElemType: types.MapType{ElemType: types.StringType}},
-		"loginNodes": types.ObjectType{AttrTypes: loginNodesObjectTypes},
+		"loginNodes": types.ListType{
+		    ElemType: types.ObjectType{AttrTypes: loginNodesObjectTypes},
+		},
 	}
 )
 
@@ -362,39 +365,51 @@ func populateClusterDataSource(
 
 	// Populate LoginNodes
 	if loginNodes, ok := cluster.GetLoginNodesOk(); ok {
-		loginNodesMap, err := loginNodes.ToMap()
-		if err != nil {
-			resp.Diagnostics.AddError(
-				"Error occured while retrieving cluster list",
-				fmt.Sprintf("Error: %v", err),
-			)
-		}
-		delete(loginNodesMap, "healthyNodes")
-		delete(loginNodesMap, "unhealthyNodes")
+	    loginNodesList := make([]types.Object, 0)
+	    for _, loginNode := range loginNodes{
+	        loginNodeMap, err := loginNode.ToMap()
+            if err != nil {
+                resp.Diagnostics.AddError(
+                    "Error occured while retrieving cluster list",
+                    fmt.Sprintf("Error: %v", err),
+                )
+            }
+            delete(loginNodeMap, "healthyNodes")
+            delete(loginNodeMap, "unhealthyNodes")
 
-		loginNodesObjectMap, diags := types.MapValueFrom(
-			ctx,
-			types.StringType,
-			loginNodesMap,
-		)
-		loginNodesObjectMapElements := loginNodesObjectMap.Elements()
+            loginNodeObjectMap, diags := types.MapValueFrom(
+                ctx,
+                types.StringType,
+                loginNodeMap,
+            )
+            loginNodeObjectMapElements := loginNodeObjectMap.Elements()
 
-		loginNodesObjectMapElements["healthyNodes"] = types.NumberValue(
-			big.NewFloat(float64(loginNodes.GetHealthyNodes())),
-		)
-		loginNodesObjectMapElements["unhealthyNodes"] = types.NumberValue(
-			big.NewFloat(float64(loginNodes.GetUnhealthyNodes())),
-		)
+            loginNodeObjectMapElements["healthyNodes"] = types.NumberValue(
+                big.NewFloat(float64(loginNode.GetHealthyNodes())),
+            )
+            loginNodeObjectMapElements["unhealthyNodes"] = types.NumberValue(
+                big.NewFloat(float64(loginNode.GetUnhealthyNodes())),
+            )
 
-		resp.Diagnostics.Append(diags...)
-		loginNodesObject, diags := types.ObjectValue(
-			loginNodesObjectTypes,
-			loginNodesObjectMapElements,
-		)
-		resp.Diagnostics.Append(diags...)
-		tfClusterMapElements["loginNodes"] = loginNodesObject
+            resp.Diagnostics.Append(diags...)
+
+            loginNodesObject, diags := types.ObjectValue(
+                loginNodesObjectTypes,
+                loginNodeObjectMapElements,
+            )
+            resp.Diagnostics.Append(diags...)
+            loginNodesList = append(loginNodesList, loginNodesObject)
+        }
+        LoginNodesObjectList, diags := types.ListValueFrom(
+            ctx,
+            types.ObjectType{AttrTypes: loginNodesObjectTypes},
+            loginNodesList,
+        )
+
+        tfClusterMapElements["loginNodes"] = LoginNodesObjectList
+        resp.Diagnostics.Append(diags...)
 	} else {
-		tfClusterMapElements["loginNodes"] = types.ObjectNull(loginNodesObjectTypes)
+		tfClusterMapElements["loginNodes"] = types.ListNull(types.ObjectType{AttrTypes: loginNodesObjectTypes})
 	}
 	clusterObject, diags := types.ObjectValue(
 		clusterDescriptionObjectTypes,

@@ -5,6 +5,7 @@
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
 **Status** | [**LoginNodesState**](LoginNodesState.md) |  | 
+**PoolName** | Pointer to **string** |  | [optional] 
 **Address** | Pointer to **string** |  | [optional] 
 **Scheme** | Pointer to **string** |  | [optional] 
 **HealthyNodes** | Pointer to **int32** |  | [optional] 
@@ -48,6 +49,31 @@ and a boolean to check if the value has been set.
 
 SetStatus sets Status field to given value.
 
+
+### GetPoolName
+
+`func (o *LoginNodesPool) GetPoolName() string`
+
+GetPoolName returns the PoolName field if non-nil, zero value otherwise.
+
+### GetPoolNameOk
+
+`func (o *LoginNodesPool) GetPoolNameOk() (*string, bool)`
+
+GetPoolNameOk returns a tuple with the PoolName field if it's non-nil, zero value otherwise
+and a boolean to check if the value has been set.
+
+### SetPoolName
+
+`func (o *LoginNodesPool) SetPoolName(v string)`
+
+SetPoolName sets PoolName field to given value.
+
+### HasPoolName
+
+`func (o *LoginNodesPool) HasPoolName() bool`
+
+HasPoolName returns a boolean if a field has been set.
 
 ### GetAddress
 

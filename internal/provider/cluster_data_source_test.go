@@ -181,6 +181,14 @@ func TestUnitClusterDataSourceRead(t *testing.T) {
 	mVersion := "some_version"
 	// var mHealth int32 = 1
 	// var mUnhealthy int32 = 0
+
+	pool := openapi.LoginNodesPool{
+	    Status:  openapi.LOGINNODESSTATE_ACTIVE,
+        PoolName: &mName,
+        Address: &mName,
+        Scheme:  &mName,
+	}
+
 	cluster := openapi.DescribeClusterResponseContent{
 		ClusterName: mName,
 		ClusterConfiguration: openapi.ClusterConfigurationStructure{
@@ -200,11 +208,7 @@ func TestUnitClusterDataSourceRead(t *testing.T) {
 			PrivateIpAddress: "some_address",
 			State:            openapi.INSTANCESTATE_PENDING,
 		},
-		LoginNodes: &openapi.LoginNodesPool{
-			Status:  openapi.LOGINNODESSTATE_ACTIVE,
-			Address: &mName,
-			Scheme:  &mName,
-		},
+		LoginNodes: []openapi.LoginNodesPool{pool},
 		Tags:                      []openapi.Tag{{}},
 		Failures:                  []openapi.Failure{{}},
 		CloudFormationStackStatus: openapi.CLOUDFORMATIONSTACKSTATUS_CREATE_COMPLETE,
@@ -280,17 +284,21 @@ func TestUnitClusterDataSourceRead(t *testing.T) {
 					types.MapType{ElemType: types.StringType},
 					[]attr.Value{types.MapValueMust(types.StringType, map[string]attr.Value{})},
 				),
-				"loginNodes": types.ObjectValueMust(loginNodesObjectTypes, map[string]attr.Value{
-					"status":  types.StringValue(string(cluster.LoginNodes.Status)),
-					"address": types.StringValue(*cluster.LoginNodes.Address),
-					"scheme":  types.StringValue(*cluster.LoginNodes.Scheme),
-					"healthyNodes": types.NumberValue(
-						big.NewFloat(float64(cluster.LoginNodes.GetHealthyNodes())),
-					),
-					"unhealthyNodes": types.NumberValue(
-						big.NewFloat(float64(cluster.LoginNodes.GetUnhealthyNodes())),
-					),
-				}),
+                "loginNodes": types.ListValueMust(
+                    types.ObjectType{AttrTypes: loginNodesObjectTypes},
+                    []attr.Value{types.ObjectValueMust(loginNodesObjectTypes, map[string]attr.Value{
+                        "status":  types.StringValue(string(pool.Status)),
+                        "poolName": types.StringValue(*pool.PoolName),
+                        "address": types.StringValue(*pool.Address),
+                        "scheme":  types.StringValue(*pool.Scheme),
+                        "healthyNodes": types.NumberValue(
+                            big.NewFloat(float64(pool.GetHealthyNodes())),
+                        ),
+                        "unhealthyNodes": types.NumberValue(
+                            big.NewFloat(float64(pool.GetUnhealthyNodes())),
+                        ),
+                    })},
+                ),
 			}),
 			StackEvents: types.ListValueMust(
 				types.MapType{ElemType: types.StringType},
