@@ -589,7 +589,7 @@ func TestUnitPopulateClusterDataDesc(t *testing.T) {
 			"tags":               types.ListNull(types.MapType{ElemType: types.StringType}),
 			"headNode":           types.MapNull(types.StringType),
 			"failures":           types.ListNull(types.MapType{ElemType: types.StringType}),
-			"loginNodes":         types.ObjectNull(loginNodesObjectTypes),
+			"loginNodes":         types.ListNull(types.ObjectType{AttrTypes: loginNodesObjectTypes}),
 		},
 	)
 	if err != nil {
@@ -621,7 +621,7 @@ func TestUnitPopulateClusterDataDesc(t *testing.T) {
 		"tags":               types.ListNull(types.MapType{ElemType: types.StringType}),
 		"headNode":           types.MapNull(types.StringType),
 		"failures":           types.ListNull(types.MapType{ElemType: types.StringType}),
-		"loginNodes":         types.ObjectNull(loginNodesObjectTypes),
+		"loginNodes":         types.ListNull(types.ObjectType{AttrTypes: loginNodesObjectTypes}),
 	})
 	if err != nil {
 		t.Error(err)

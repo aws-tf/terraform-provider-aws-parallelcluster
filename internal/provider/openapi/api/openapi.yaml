@@ -2,7 +2,7 @@ openapi: 3.0.2
 info:
   description: ParallelCluster API
   title: ParallelCluster
-  version: 3.10.0
+  version: 3.11.1
 servers:
 - url: /
 security:
@@ -1995,7 +1995,6 @@ components:
       - DELETE_COMPLETE
       - REVIEW_IN_PROGRESS
       - UPDATE_IN_PROGRESS
-      - UPDATE_FAILED
       - UPDATE_COMPLETE_CLEANUP_IN_PROGRESS
       - UPDATE_COMPLETE
       - UPDATE_FAILED
@@ -2063,6 +2062,7 @@ components:
         state: pending
         nodeType: HeadNode
         privateIpAddress: privateIpAddress
+        poolName: poolName
       properties:
         instanceId:
           type: string
@@ -2080,6 +2080,8 @@ components:
         nodeType:
           $ref: '#/components/schemas/NodeType'
         queueName:
+          type: string
+        poolName:
           type: string
       required:
       - instanceId
@@ -2275,6 +2277,7 @@ components:
           state: pending
           nodeType: HeadNode
           privateIpAddress: privateIpAddress
+          poolName: poolName
         - launchTime: 2000-01-23T04:56:07.000+00:00
           instanceId: instanceId
           queueName: queueName
@@ -2283,6 +2286,7 @@ components:
           state: pending
           nodeType: HeadNode
           privateIpAddress: privateIpAddress
+          poolName: poolName
         nextToken: nextToken
       properties:
         nextToken:
@@ -2304,11 +2308,18 @@ components:
           failureReason: failureReason
         creationTime: 2000-01-23T04:56:07.000+00:00
         loginNodes:
-          unhealthyNodes: 6
+        - unhealthyNodes: 6
           address: address
           scheme: scheme
           healthyNodes: 0
           status: pending
+          poolName: poolName
+        - unhealthyNodes: 6
+          address: address
+          scheme: scheme
+          healthyNodes: 0
+          status: pending
+          poolName: poolName
         version: version
         clusterConfiguration:
           url: url
@@ -2376,7 +2387,9 @@ components:
         headNode:
           $ref: '#/components/schemas/EC2Instance'
         loginNodes:
-          $ref: '#/components/schemas/LoginNodesPool'
+          items:
+            $ref: '#/components/schemas/LoginNodesPool'
+          type: array
         failures:
           description: Failures array containing failures reason and code when the
             stack is in CREATE_FAILED status.
@@ -3052,9 +3065,12 @@ components:
         scheme: scheme
         healthyNodes: 0
         status: pending
+        poolName: poolName
       properties:
         status:
           $ref: '#/components/schemas/LoginNodesState'
+        poolName:
+          type: string
         address:
           type: string
         scheme:
