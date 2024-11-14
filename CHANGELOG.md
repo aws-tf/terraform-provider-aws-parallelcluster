@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## 1.0.1
+
+**BUG FIX**
+
+* Fix describe cluster response content error that occurs when launching a cluster with login nodes with PCAPI >= 3.11.0
+
+
 ## 1.0.0
 
 **CHANGES**
