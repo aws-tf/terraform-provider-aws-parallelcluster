@@ -15,6 +15,7 @@ package provider
 
 import (
 	"context"
+	"math/big"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -548,11 +549,20 @@ func TestUnitGetCluster(t *testing.T) {
 func TestUnitPopulateClusterDataDesc(t *testing.T) {
 	configPath := "/config"
 	config := `{"some":"json"}`
+	mName := "some_name"
 
 	server := mockHttpServer(configPath, config, t)
 
 	clusterConfigUrl := server.URL + configPath
+
 	defer server.Close()
+
+	pool := openapi.LoginNodesPool{
+        Status:  openapi.LOGINNODESSTATE_ACTIVE,
+        PoolName: &mName,
+        Address: &mName,
+        Scheme:  &mName,
+    }
 
 	contents := []*openapi.DescribeClusterResponseContent{
 		{
@@ -565,6 +575,9 @@ func TestUnitPopulateClusterDataDesc(t *testing.T) {
 			ClusterConfiguration: openapi.ClusterConfigurationStructure{
 				Url: &clusterConfigUrl,
 			},
+            LoginNodes: []openapi.LoginNodesPool{
+                pool,
+            },
 		},
 		{},
 	}
@@ -621,7 +634,21 @@ func TestUnitPopulateClusterDataDesc(t *testing.T) {
 		"tags":               types.ListNull(types.MapType{ElemType: types.StringType}),
 		"headNode":           types.MapNull(types.StringType),
 		"failures":           types.ListNull(types.MapType{ElemType: types.StringType}),
-		"loginNodes":         types.ListNull(types.ObjectType{AttrTypes: loginNodesObjectTypes}),
+		"loginNodes":         types.ListValueMust(
+            types.ObjectType{AttrTypes: loginNodesObjectTypes},
+            []attr.Value{types.ObjectValueMust(loginNodesObjectTypes, map[string]attr.Value{
+                "status":  types.StringValue(string(pool.Status)),
+                "poolName": types.StringValue(*pool.PoolName),
+                "address": types.StringValue(*pool.Address),
+                "scheme":  types.StringValue(*pool.Scheme),
+                "healthyNodes": types.NumberValue(
+                    big.NewFloat(float64(pool.GetHealthyNodes())),
+                ),
+                "unhealthyNodes": types.NumberValue(
+                    big.NewFloat(float64(pool.GetUnhealthyNodes())),
+                ),
+            })},
+        ),
 	})
 	if err != nil {
 		t.Error(err)
