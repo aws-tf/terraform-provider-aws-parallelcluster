@@ -370,7 +370,7 @@ func populateClusterDataSource(
 	        loginNodeMap, err := loginNode.ToMap()
             if err != nil {
                 resp.Diagnostics.AddError(
-                    "Error occured while retrieving cluster list",
+                    "Error occured while retrieving list of login node pools",
                     fmt.Sprintf("Error: %v", err),
                 )
             }

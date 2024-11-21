@@ -4,8 +4,8 @@
 
 **BUG FIX**
 
-* Fix describe cluster response content error that occurs when launching a cluster with login nodes with PCAPI >= 3.11.0
-
+* Fix an issue that was causing terraform-apply failure when ParallelCluster API 3.11.x is used to deploy clusters with login nodes.
+  https://github.com/aws/aws-parallelcluster/issues/6489
 
 ## 1.0.0
 
