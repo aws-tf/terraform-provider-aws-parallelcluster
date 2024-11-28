@@ -66,6 +66,26 @@ locals {
         QueueUpdateStrategy = "TERMINATE"
       }
     }
+    LoginNodes : {
+      Pools : [
+        {
+          Name : "login1"
+          InstanceType : "t3.small"
+          Count : 1
+          Networking : {
+            SubnetIds : [var.subnet != null ? var.subnet : aws_default_subnet.public_az1.id]
+          },
+          Iam : {
+            AdditionalIamPolicies : [
+              {
+                Policy : "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+              }
+            ]
+          },
+          GracetimePeriod : 3
+        }
+      ]
+    }
   }
 }
 
