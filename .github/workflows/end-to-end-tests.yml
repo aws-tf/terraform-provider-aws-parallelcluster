@@ -58,7 +58,7 @@ jobs:
           TF_ACC: "1"
           TEST_REGION: "us-east-1"
           TEST_AVAILABILITY_ZONE: "us-east-1a"
-          TEST_PCAPI_STACK_NAME: "ParallelCluster"
+          TEST_PCAPI_STACK_NAME: "ParallelClusterAPI"
           TEST_USE_USER_ROLE: "true"
           TEST_CLUSTER_NAME: "test-cluster-github-${{ env.TEST_ID }}"
           TEST_IMAGE_NAME: "test-image-github-${{ env.TEST_ID }}"
