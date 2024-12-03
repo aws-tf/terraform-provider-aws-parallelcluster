@@ -35,13 +35,11 @@
 
 * `UPDATE_IN_PROGRESS` (value: `"UPDATE_IN_PROGRESS"`)
 
-* `UPDATE_FAILED` (value: `"UPDATE_FAILED"`)
-
 * `UPDATE_COMPLETE_CLEANUP_IN_PROGRESS` (value: `"UPDATE_COMPLETE_CLEANUP_IN_PROGRESS"`)
 
 * `UPDATE_COMPLETE` (value: `"UPDATE_COMPLETE"`)
 
-* `UPDATE_FAILED2` (value: `"UPDATE_FAILED"`)
+* `UPDATE_FAILED` (value: `"UPDATE_FAILED"`)
 
 * `UPDATE_ROLLBACK_IN_PROGRESS` (value: `"UPDATE_ROLLBACK_IN_PROGRESS"`)
 
@@ -53,3 +51,5 @@
 
 
 [[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)
+
+

@@ -12,6 +12,7 @@ Name | Type | Description | Notes
 **State** | [**InstanceState**](InstanceState.md) |  | 
 **NodeType** | [**NodeType**](NodeType.md) |  | 
 **QueueName** | Pointer to **string** |  | [optional] 
+**PoolName** | Pointer to **string** |  | [optional] 
 
 ## Methods
 
@@ -201,6 +202,31 @@ SetQueueName sets QueueName field to given value.
 `func (o *ClusterInstance) HasQueueName() bool`
 
 HasQueueName returns a boolean if a field has been set.
+
+### GetPoolName
+
+`func (o *ClusterInstance) GetPoolName() string`
+
+GetPoolName returns the PoolName field if non-nil, zero value otherwise.
+
+### GetPoolNameOk
+
+`func (o *ClusterInstance) GetPoolNameOk() (*string, bool)`
+
+GetPoolNameOk returns a tuple with the PoolName field if it's non-nil, zero value otherwise
+and a boolean to check if the value has been set.
+
+### SetPoolName
+
+`func (o *ClusterInstance) SetPoolName(v string)`
+
+SetPoolName sets PoolName field to given value.
+
+### HasPoolName
+
+`func (o *ClusterInstance) HasPoolName() bool`
+
+HasPoolName returns a boolean if a field has been set.
 
 
 [[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)

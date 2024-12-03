@@ -17,7 +17,7 @@ Name | Type | Description | Notes
 **ComputeFleetStatus** | [**ComputeFleetStatus**](ComputeFleetStatus.md) |  | 
 **Tags** | [**[]Tag**](Tag.md) | Tags associated with the cluster. | 
 **HeadNode** | Pointer to [**EC2Instance**](EC2Instance.md) |  | [optional] 
-**LoginNodes** | Pointer to [**LoginNodesPool**](LoginNodesPool.md) |  | [optional] 
+**LoginNodes** | Pointer to [**[]LoginNodesPool**](LoginNodesPool.md) |  | [optional] 
 **Failures** | Pointer to [**[]Failure**](Failure.md) | Failures array containing failures reason and code when the stack is in CREATE_FAILED status. | [optional] 
 
 ## Methods
@@ -311,20 +311,20 @@ HasHeadNode returns a boolean if a field has been set.
 
 ### GetLoginNodes
 
-`func (o *DescribeClusterResponseContent) GetLoginNodes() LoginNodesPool`
+`func (o *DescribeClusterResponseContent) GetLoginNodes() []LoginNodesPool`
 
 GetLoginNodes returns the LoginNodes field if non-nil, zero value otherwise.
 
 ### GetLoginNodesOk
 
-`func (o *DescribeClusterResponseContent) GetLoginNodesOk() (*LoginNodesPool, bool)`
+`func (o *DescribeClusterResponseContent) GetLoginNodesOk() (*[]LoginNodesPool, bool)`
 
 GetLoginNodesOk returns a tuple with the LoginNodes field if it's non-nil, zero value otherwise
 and a boolean to check if the value has been set.
 
 ### SetLoginNodes
 
-`func (o *DescribeClusterResponseContent) SetLoginNodes(v LoginNodesPool)`
+`func (o *DescribeClusterResponseContent) SetLoginNodes(v []LoginNodesPool)`
 
 SetLoginNodes sets LoginNodes field to given value.
 

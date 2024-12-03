@@ -103,6 +103,8 @@ Resources:
               - ec2:RevokeSecurityGroupIngress
               - ec2:RevokeSecurityGroupEgress
               - ec2:DescribeSecurityGroupRules
+              - ec2:CreateTags
+              - ec2:DeleteTags
             Resource: '*'
             Sid: EC2
           - Effect: Allow

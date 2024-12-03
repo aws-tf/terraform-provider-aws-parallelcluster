@@ -6,7 +6,8 @@ The following matrix describes the compatibility between the provider and the Pa
 
 | Provider version | ParallelCluster version |
 |------------------|-------------------------|
-| 1.0.0            | 3.8.0+                  |
+| 1.0.0            | 3.8.0-3.10.1            |
+| 1.1.0            | 3.11.0+                 |
 
 ## Issues
 
