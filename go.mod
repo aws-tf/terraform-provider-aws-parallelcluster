@@ -7,7 +7,7 @@ require (
 	github.com/aws/aws-sdk-go-v2 v1.32.7
 	github.com/aws/aws-sdk-go-v2/config v1.27.18
 	github.com/aws/aws-sdk-go-v2/service/apigateway v1.24.1
-	github.com/aws/aws-sdk-go-v2/service/cloudformation v1.52.1
+	github.com/aws/aws-sdk-go-v2/service/cloudformation v1.56.2
 	github.com/aws/aws-sdk-go-v2/service/sts v1.29.1
 	github.com/hashicorp/terraform-plugin-docs v0.19.4
 	github.com/hashicorp/terraform-plugin-framework v1.9.0
@@ -30,8 +30,8 @@ require (
 	github.com/aws/aws-sdk-go v1.53.8 // indirect
 	github.com/aws/aws-sdk-go-v2/credentials v1.17.18 // indirect
 	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.16.5 // indirect
-	github.com/aws/aws-sdk-go-v2/internal/configsources v1.3.12 // indirect
-	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.6.12 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/configsources v1.3.26 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.6.26 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/ini v1.8.0 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.11.2 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.11.14 // indirect
