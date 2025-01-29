@@ -1,0 +1,7 @@
+region = "us-east-1"
+api_stack_name = "ParallelClusterAPI-3120"
+api_version = "3.12.0"
+
+os = "alinux2"
+architecture = "x86_64"
+instance_type = "c5.2xlarge"
