@@ -12,18 +12,38 @@
 * limitations under the License.
 */
 
-#######################
-#### PROVIDER VARS ####
-#######################
-
-variable "role_arn" {
+variable "region" {
+  description = "The region the ParallelCluster API is deployed in."
   type        = string
-  description = "The role used by the ParallelCluster provider."
+}
+
+variable "profile" {
+  type        = string
+  description = "The AWS profile used to deploy the clusters."
   default     = null
 }
 
-variable "endpoint" {
+variable "api_stack_name" {
   type        = string
-  description = "The endpoint used by the ParallelCluster provider."
-  default     = null
+  description = "The name of the CloudFormation stack used to deploy the ParallelCluster API."
+}
+
+variable "api_version" {
+  type        = string
+  description = "The version of the ParallelCluster API."
+}
+
+variable "os" {
+  type        = string
+  description = "The OS of the ParallelCluster image."
+}
+
+variable "architecture" {
+  type        = string
+  description = "The architecture of the ParallelCluster image."
+}
+
+variable "instance_type" {
+  type        = string
+  description = "The build instance type used to build the ParallelCluster image."
 }

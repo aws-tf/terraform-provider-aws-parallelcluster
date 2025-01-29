@@ -13,16 +13,9 @@
 */
 
 provider "aws-parallelcluster" {
-  endpoint = var.endpoint
-  role_arn = var.role_arn
-}
-
-terraform {
-  required_version = ">= 1.5.7"
-  required_providers {
-    aws-parallelcluster = {
-      source  = "aws-tf/aws-parallelcluster"
-      version = "1.1.0"
-    }
-  }
+  region        = var.region
+  profile       = var.profile
+  use_user_role = true
+  // This var should be set if the API was deployed without using the default stack name.
+  api_stack_name = var.api_stack_name
 }

@@ -1,3 +1,5 @@
 Build:
-  InstanceType: c5.2xlarge
-  ParentImage: ami-0872c164f38dcc49f
+  InstanceType: ${instanceType}
+  ParentImage: ${parentImage}
+  UpdateOsPackages:
+    Enabled: false
