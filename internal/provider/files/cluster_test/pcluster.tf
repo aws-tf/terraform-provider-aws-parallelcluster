@@ -26,12 +26,12 @@ locals {
     HeadNode = {
       InstanceType = var.head_node_type
       Networking = {
-        SubnetId  = var.subnet != null ? var.subnet : aws_default_subnet.public_az1.id
+        SubnetId = var.subnet != null ? var.subnet : aws_default_subnet.public_az1.id
       }
       Iam = {
         AdditionalIamPolicies = [
           {
-            Policy: "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+            Policy : "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
           }
         ]
       }
@@ -43,21 +43,21 @@ locals {
           Name         = "queue1"
           CapacityType = "ONDEMAND"
           Networking = {
-            SubnetIds      = [var.subnet != null ? var.subnet : aws_default_subnet.public_az1.id]
+            SubnetIds = [var.subnet != null ? var.subnet : aws_default_subnet.public_az1.id]
           }
           Iam = {
             AdditionalIamPolicies = [
               {
-                Policy: "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+                Policy : "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
               }
             ]
           }
           ComputeResources = [
             {
-              Name                              = "compute"
-              InstanceType                      = var.compute_node_type
-              MinCount                          = var.min_nodes
-              MaxCount                          = var.max_nodes
+              Name         = "compute"
+              InstanceType = var.compute_node_type
+              MinCount     = var.min_nodes
+              MaxCount     = var.max_nodes
             }
           ]
         }
@@ -90,8 +90,8 @@ locals {
 }
 
 resource "aws-parallelcluster_cluster" "test" {
-  cluster_name        = var.cluster_name
-  region              = var.region
+  cluster_name             = var.cluster_name
+  region                   = var.region
   validation_failure_level = "WARNING"
   suppress_validators = [
     "type:KeyPairValidator"
