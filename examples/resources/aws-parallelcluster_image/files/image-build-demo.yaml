@@ -3,3 +3,5 @@ Build:
   ParentImage: ${parentImage}
   UpdateOsPackages:
     Enabled: false
+  Iam:
+    CleanupLambdaRole: ${cleanupLambdaRole}
