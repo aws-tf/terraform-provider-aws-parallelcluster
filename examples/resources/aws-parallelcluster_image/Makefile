@@ -11,5 +11,6 @@ clean:
 	rm -rf .terraform
 	rm -rf terraform.tfstate
 	rm -rf terraform.tfstate.backup
+	rm -rf .terraform.tfstate.lock.info
 	rm -rf .terraform.lock.hcl
 	rm -rf tfplan
