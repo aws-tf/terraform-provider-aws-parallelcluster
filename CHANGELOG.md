@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## 1.2.0
+
+**CHANGES**
+
+* Upgrade dependencies.
+
 ## 1.1.0
 
 **BUG FIX**
