@@ -299,7 +299,7 @@ func populateClusterDataSource(
 				err.Error(),
 			)
 		} else {
-			defer s3Resp.Body.Close()
+			defer func() { _ = s3Resp.Body.Close() }()
 			configBytes, err = io.ReadAll(s3Resp.Body)
 			if err != nil {
 				resp.Diagnostics.AddWarning(

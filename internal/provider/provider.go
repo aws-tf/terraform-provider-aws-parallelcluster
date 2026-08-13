@@ -154,7 +154,7 @@ func GetApiUrlAndRoleFromCfStack(cfg aws.Config, name string) (string, string, e
 	}
 
 	if len(url) == 0 {
-		return url, role, fmt.Errorf("API endpoint not found.")
+		return url, role, fmt.Errorf("API endpoint not found")
 	}
 
 	return url, role, nil
@@ -185,7 +185,7 @@ func GetClusterApiUrlFromGateway(cfg aws.Config, name string) (string, error) {
 	}
 
 	if len(url) == 0 {
-		return url, fmt.Errorf("API endpoint not found.")
+		return url, fmt.Errorf("API endpoint not found")
 	}
 
 	return url, nil
@@ -201,7 +201,7 @@ func ConfigureAWSv4(cfg aws.Config, role string) (openapi.AWSv4, time.Time, erro
 		creds, err := cfg.Credentials.Retrieve(context.TODO())
 		if err != nil {
 			return openapi.AWSv4{}, time.Now(), fmt.Errorf(
-				"Failed to retrieve aws credentials. Error: %w",
+				"failed to retrieve aws credentials. Error: %w",
 				err,
 			)
 		}
@@ -217,7 +217,7 @@ func ConfigureAWSv4(cfg aws.Config, role string) (openapi.AWSv4, time.Time, erro
 		})
 		if err != nil {
 			return openapi.AWSv4{}, time.Now(), fmt.Errorf(
-				"Failed to assume '%s'. Error: %w",
+				"failed to assume '%s'. Error: %w",
 				role,
 				err,
 			)
@@ -273,7 +273,7 @@ func (p *PclusterProvider) Configure(
 	}
 
 	if !data.Profile.IsNull() {
-		os.Setenv("AWS_PROFILE", data.Profile.ValueString())
+		_ = os.Setenv("AWS_PROFILE", data.Profile.ValueString())
 	}
 
 	if !data.AwsKey.IsNull() {
@@ -285,12 +285,12 @@ func (p *PclusterProvider) Configure(
 			return
 		}
 
-		os.Setenv("AWS_ACCESS_KEY_ID", data.AwsKey.ValueString())
-		os.Setenv("AWS_SECRET_ACCESS_KEY", data.AwsSecret.ValueString())
+		_ = os.Setenv("AWS_ACCESS_KEY_ID", data.AwsKey.ValueString())
+		_ = os.Setenv("AWS_SECRET_ACCESS_KEY", data.AwsSecret.ValueString())
 	}
 
 	if !data.Region.IsNull() {
-		os.Setenv("AWS_REGION", data.Region.ValueString())
+		_ = os.Setenv("AWS_REGION", data.Region.ValueString())
 	}
 
 	cfg, err := config.LoadDefaultConfig(context.TODO())

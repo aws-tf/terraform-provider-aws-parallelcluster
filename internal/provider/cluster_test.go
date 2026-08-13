@@ -51,11 +51,11 @@ func TestEnd2EndCluster(t *testing.T) {
 	}
 
 	if region, ok := os.LookupEnv("TEST_REGION"); ok {
-		os.Setenv("AWS_REGION", region)
+		_ = os.Setenv("AWS_REGION", region)
 		configVariables["region"] = config.StringVariable(region)
 		configUpdateVariables["region"] = config.StringVariable(region)
 	} else {
-		os.Setenv("AWS_REGION", defaultRegion)
+		_ = os.Setenv("AWS_REGION", defaultRegion)
 		configVariables["region"] = config.StringVariable(defaultRegion)
 		configUpdateVariables["region"] = config.StringVariable(defaultRegion)
 	}

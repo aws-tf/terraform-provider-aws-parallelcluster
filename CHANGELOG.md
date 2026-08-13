@@ -14,6 +14,7 @@
 * Upgrade terraform-plugin-go to v0.26.0 (from v0.23.0).
 * Upgrade terraform-plugin-sdk/v2 to v2.36.1 (from v2.34.0).
 
+
 ## 1.1.0
 
 **BUG FIX**

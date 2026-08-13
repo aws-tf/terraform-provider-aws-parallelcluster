@@ -48,10 +48,10 @@ func TestEnd2EndImage(t *testing.T) {
 	}
 
 	if region, ok := os.LookupEnv("TEST_REGION"); ok {
-		os.Setenv("AWS_REGION", region)
+		_ = os.Setenv("AWS_REGION", region)
 		testConfig.region = region
 	} else {
-		os.Setenv("AWS_REGION", defaultRegion)
+		_ = os.Setenv("AWS_REGION", defaultRegion)
 		testConfig.region = defaultRegion
 	}
 

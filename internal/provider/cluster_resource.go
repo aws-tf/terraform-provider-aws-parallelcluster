@@ -299,7 +299,7 @@ func populateClusterResourceDesc(
 			} else {
 				s3Resp, err := http.Get(*url)
 				if err == nil {
-					defer s3Resp.Body.Close()
+					defer func() { _ = s3Resp.Body.Close() }()
 					configBytes, err := io.ReadAll(s3Resp.Body)
 					if err == nil {
 						data.ClusterConfiguration = types.StringValue(string(configBytes))

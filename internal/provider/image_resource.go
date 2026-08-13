@@ -426,7 +426,7 @@ func (r *ImageResource) Read(
 					err.Error(),
 				)
 			}
-			defer s3Resp.Body.Close()
+			defer func() { _ = s3Resp.Body.Close() }()
 			configBytes, err := io.ReadAll(s3Resp.Body)
 			if err != nil {
 				resp.Diagnostics.AddError(
@@ -505,7 +505,7 @@ func (r *ImageResource) Update(
 					err.Error(),
 				)
 			}
-			defer s3Resp.Body.Close()
+			defer func() { _ = s3Resp.Body.Close() }()
 			configBytes, err := io.ReadAll(s3Resp.Body)
 			if err != nil {
 				resp.Diagnostics.AddError(
@@ -552,12 +552,13 @@ func (r *ImageResource) Delete(
 	if image, ok := deleteResponse.GetImageOk(); ok {
 		buildStatus := image.ImageBuildStatus
 
-		if buildStatus == openapi.IMAGEBUILDSTATUS_DELETE_FAILED {
+		switch buildStatus {
+		case openapi.IMAGEBUILDSTATUS_DELETE_FAILED:
 			resp.Diagnostics.AddError(
 				"Image delete failed to complete.",
 				fmt.Sprintf("Error %v", err),
 			)
-		} else if buildStatus == openapi.IMAGEBUILDSTATUS_DELETE_IN_PROGRESS {
+		case openapi.IMAGEBUILDSTATUS_DELETE_IN_PROGRESS:
 			out, err := r.waitImageReady(reqCtx, data.ImageId.ValueString())
 			if err != nil && err.Error() != failedToFindImageErr {
 				resp.Diagnostics.AddError("Image delete failed to complete.", err.Error())
@@ -623,7 +624,7 @@ func (r *ImageResource) ImportState(
 					err.Error(),
 				)
 			}
-			defer s3Resp.Body.Close()
+			defer func() { _ = s3Resp.Body.Close() }()
 			configBytes, err := io.ReadAll(s3Resp.Body)
 			if err != nil {
 				resp.Diagnostics.AddError(

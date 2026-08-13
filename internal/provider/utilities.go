@@ -74,7 +74,7 @@ func mockJsonServer(mocks ...mockCfg) (*httptest.Server, error) {
 		if m.useJsonable || m.out != nil {
 			_, err = m.out.MarshalJSON()
 			if err != nil {
-				return nil, fmt.Errorf("Failed to marshal list clusters response JSON.")
+				return nil, fmt.Errorf("failed to marshal list clusters response JSON")
 			}
 		}
 	}
@@ -122,11 +122,11 @@ func standardResourceConfigureTests(d resourceConfigurable) error {
 
 	d.Configure(context.TODO(), req, &resp)
 	if resp.Diagnostics.HasError() {
-		return fmt.Errorf("Not expecting error when configuring without provider data.")
+		return fmt.Errorf("not expecting error when configuring without provider data")
 	}
 
 	if d.getClient() != nil {
-		return fmt.Errorf("Error: Client should not be set when provider data is not set.")
+		return fmt.Errorf("client should not be set when provider data is not set")
 	}
 
 	req.ProviderData = configData{
@@ -137,11 +137,11 @@ func standardResourceConfigureTests(d resourceConfigurable) error {
 	d.Configure(context.TODO(), req, &resp)
 
 	if d.getClient() == nil {
-		return fmt.Errorf("Error client expected to be set.")
+		return fmt.Errorf("client expected to be set")
 	}
 
 	if d.getAWSv4() != awsv4 {
-		return fmt.Errorf("Error matching output expected. O: %#v\nE: %#v",
+		return fmt.Errorf("error matching output expected. O: %#v\nE: %#v",
 			d.getAWSv4(),
 			awsv4,
 		)
@@ -150,7 +150,7 @@ func standardResourceConfigureTests(d resourceConfigurable) error {
 	req.ProviderData = "Some invalid data"
 	d.Configure(context.TODO(), req, &resp)
 	if !resp.Diagnostics.HasError() {
-		return fmt.Errorf("Expecting error when configuring with invalid data.")
+		return fmt.Errorf("expecting error when configuring with invalid data")
 	}
 
 	return nil
@@ -171,11 +171,11 @@ func standardDataConfigureTests(d dataConfigurable) error {
 
 	d.Configure(context.TODO(), req, &resp)
 	if resp.Diagnostics.HasError() {
-		return fmt.Errorf("Not expecting error when configuring without provider data.")
+		return fmt.Errorf("not expecting error when configuring without provider data")
 	}
 
 	if d.getClient() != nil {
-		return fmt.Errorf("Error: Client should not be set when provider data is not set.")
+		return fmt.Errorf("client should not be set when provider data is not set")
 	}
 
 	req.ProviderData = configData{
@@ -186,11 +186,11 @@ func standardDataConfigureTests(d dataConfigurable) error {
 	d.Configure(context.TODO(), req, &resp)
 
 	if d.getClient() == nil {
-		return fmt.Errorf("Error client expected to be set.")
+		return fmt.Errorf("client expected to be set")
 	}
 
 	if d.getAWSv4() != awsv4 {
-		return fmt.Errorf("Error matching output expected. O: %#v\nE: %#v",
+		return fmt.Errorf("error matching output expected. O: %#v\nE: %#v",
 			d.getAWSv4(),
 			awsv4,
 		)
@@ -199,7 +199,7 @@ func standardDataConfigureTests(d dataConfigurable) error {
 	req.ProviderData = "Some invalid data"
 	d.Configure(context.TODO(), req, &resp)
 	if !resp.Diagnostics.HasError() {
-		return fmt.Errorf("Expecting error when configuring with invalid data.")
+		return fmt.Errorf("expecting error when configuring with invalid data")
 	}
 
 	return nil
