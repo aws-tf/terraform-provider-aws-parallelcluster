@@ -4,7 +4,17 @@
 
 **CHANGES**
 
-* Upgrade dependencies.
+* Upgrade Go minimum version to 1.23.0 (from 1.21).
+* Upgrade aws-sdk-go-v2 to v1.36.3 (from v1.32.7).
+* Upgrade aws-sdk-go-v2/config to v1.29.13 (from v1.28.7).
+* Upgrade aws-sdk-go-v2/service/apigateway to v1.30.1 (from v1.28.2).
+* Upgrade aws-sdk-go-v2/service/cloudformation to v1.59.1 (from v1.56.2).
+* Upgrade aws-sdk-go-v2/service/sts to v1.33.18 (from v1.33.3).
+* Upgrade terraform-plugin-docs to v0.21.0 (from v0.19.4).
+* Upgrade terraform-plugin-framework to v1.14.1 (from v1.9.0).
+* Upgrade terraform-plugin-go to v0.26.0 (from v0.23.0).
+* Upgrade terraform-plugin-sdk/v2 to v2.36.1 (from v2.34.0).
+* Upgrade terraform-plugin-testing to v1.12.0 (from v1.5.1).
 
 ## 1.1.0
 
