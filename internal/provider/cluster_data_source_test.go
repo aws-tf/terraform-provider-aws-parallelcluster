@@ -409,3 +409,109 @@ func TestUnitClusterDataSourceRead(t *testing.T) {
 		)
 	}
 }
+
+func TestUnitClusterDataSourceReadLogStreams400(t *testing.T) {
+	t.Parallel()
+	resp := datasource.ReadResponse{}
+	req := datasource.ReadRequest{}
+	mResp := datasource.SchemaResponse{}
+	mReq := datasource.SchemaRequest{}
+	ctx := context.TODO()
+
+	cfg := openapi.NewConfiguration()
+
+	d := ClusterDataSource{
+		awsv4:  awsv4Test(),
+		client: openapi.NewAPIClient(cfg),
+	}
+
+	d.Schema(ctx, mReq, &mResp)
+
+	cluster := openapi.DescribeClusterResponseContent{
+		ClusterName:               "some_name",
+		CloudFormationStackStatus: openapi.CLOUDFORMATIONSTACKSTATUS_CREATE_COMPLETE,
+		ClusterStatus:             openapi.CLUSTERSTATUS_CREATE_COMPLETE,
+		ComputeFleetStatus:        openapi.COMPUTEFLEETSTATUS_ENABLED,
+	}
+
+	stackEvents := openapi.GetClusterStackEventsResponseContent{}
+
+	// Log streams endpoint returns 400, e.g. when CloudWatch logging is disabled.
+	logStreams := openapi.ListClusterLogStreamsResponseContent{}
+
+	mocks := []mockCfg{
+		{
+			path: "clusters/some_name",
+			out:  cluster,
+		},
+		{
+			path: "clusters/some_name/stackevents",
+			out:  stackEvents,
+		},
+		{
+			path:      "clusters/some_name/logstreams",
+			out:       logStreams,
+			httpError: http.StatusBadRequest,
+		},
+	}
+	server, err := mockJsonServer(mocks...)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer server.Close()
+
+	cfg.Servers = openapi.ServerConfigurations{
+		openapi.ServerConfiguration{
+			URL: server.URL,
+		},
+	}
+	d.client = openapi.NewAPIClient(cfg)
+
+	req.Config = tfsdk.Config{
+		Raw: tftypes.NewValue(
+			tftypes.Object{},
+			map[string]tftypes.Value{
+				"cluster_name": tftypes.NewValue(
+					tftypes.String,
+					"some_name",
+				),
+				"cluster":     {},
+				"log_streams": {},
+				"filters":     {},
+				"region": tftypes.NewValue(
+					tftypes.String,
+					"some_region",
+				),
+				"stack_events": {},
+			},
+		),
+		Schema: mResp.Schema,
+	}
+
+	resp = datasource.ReadResponse{}
+	resp.State = tfsdk.State{
+		Schema: mResp.Schema,
+	}
+	d.Read(ctx, req, &resp)
+
+	if resp.Diagnostics.HasError() {
+		t.Fatalf(
+			"Expecting read operation to succeed when log streams returns 400, got: %v",
+			resp.Diagnostics,
+		)
+	}
+
+	output := ClusterDataSourceModel{}
+	diags := resp.State.Get(ctx, &output)
+	if diags.HasError() {
+		t.Fatalf("Read operation returned unexpected error while retrieving state data: %v", diags)
+	}
+
+	if output.LogStreams.IsNull() {
+		t.Fatal("Expecting log_streams to be an empty list, got null.")
+	}
+
+	if len(output.LogStreams.Elements()) != 0 {
+		t.Fatalf("Expecting log_streams to be empty, got %d elements.", len(output.LogStreams.Elements()))
+	}
+}

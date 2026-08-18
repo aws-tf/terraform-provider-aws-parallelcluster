@@ -469,19 +469,19 @@ func (d *ClusterDataSource) Read(
 	).Execute()
 	if err != nil {
 		if rawHttp != nil {
-			resp.Diagnostics.AddError(
+			resp.Diagnostics.AddWarning(
 				fmt.Sprintf("%v", err.Error()),
 				fmt.Sprintf("%v", rawHttp.Body),
 			)
 		} else {
-			resp.Diagnostics.AddError(
+			resp.Diagnostics.AddWarning(
 				"Error while listing cluster log streams.",
 				fmt.Sprintf("%v", err.Error()),
 			)
 		}
 	}
 
-	data.LogStreams = types.ListNull(types.StringType)
+	data.LogStreams, _ = types.ListValueFrom(ctx, types.MapType{ElemType: types.StringType}, []types.Map{})
 	// Populate ClusterLogStreams
 	if logStreams != nil {
 		var logStreamsList []types.Map

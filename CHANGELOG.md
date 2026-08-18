@@ -2,6 +2,10 @@
 
 ## 1.2.0
 
+**BUG FIX**
+
+* Fix the `aws-parallelcluster_cluster` data source failing when CloudWatch logging is disabled on the cluster.
+
 **CHANGES**
 
 * Upgrade Go minimum version to 1.23.0 (from 1.21).
