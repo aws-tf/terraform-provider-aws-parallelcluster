@@ -1,10 +1,10 @@
 module github.com/aws-tf/terraform-provider-aws-parallelcluster
 
-go 1.23.0
+go 1.24
 
 require (
 	github.com/aws-tf/terraform-provider-aws-parallelcluster/internal/provider/openapi v0.0.0-00010101000000-000000000000
-	github.com/aws/aws-sdk-go-v2 v1.36.3
+	github.com/aws/aws-sdk-go-v2 v1.43.7
 	github.com/aws/aws-sdk-go-v2/config v1.29.13
 	github.com/aws/aws-sdk-go-v2/service/apigateway v1.30.1
 	github.com/aws/aws-sdk-go-v2/service/cloudformation v1.59.1
@@ -37,7 +37,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.12.15 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sso v1.25.3 // indirect
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.30.1 // indirect
-	github.com/aws/smithy-go v1.22.2 // indirect
+	github.com/aws/smithy-go v1.27.8 // indirect
 	github.com/bgentry/speakeasy v0.1.0 // indirect
 	github.com/bmatcuk/doublestar/v4 v4.8.1 // indirect
 	github.com/cloudflare/circl v1.3.7 // indirect
