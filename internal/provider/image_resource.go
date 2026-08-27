@@ -20,6 +20,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -87,6 +88,10 @@ func (r *ImageResource) getImage(
 	ctx context.Context,
 	imageId string,
 ) (openapi.DescribeImageResponseContent, error) {
+	// Re-attach freshly-derived credentials on every call so long-running
+	// waits (build/delete polling) do not fail when the initial credentials
+	// expire mid-operation.
+	ctx = contextWithAWSv4(ctx, r.getAWSv4())
 	image, _, err := r.client.ImageOperationsAPI.DescribeImage(ctx, imageId).Execute()
 	if err != nil {
 		return openapi.DescribeImageResponseContent{}, err
@@ -103,6 +108,7 @@ func NewImageResource() resource.Resource {
 type ImageResource struct {
 	client     *openapi.APIClient
 	awsv4      openapi.AWSv4
+	cfg        aws.Config
 	role       string
 	expiration time.Time
 }
@@ -132,6 +138,7 @@ func (r *ImageResource) getClient() *openapi.APIClient {
 }
 
 func (r *ImageResource) getAWSv4() openapi.AWSv4 {
+	r.awsv4, r.expiration = refreshAWSv4(r.cfg, r.role, r.awsv4, r.expiration)
 	return r.awsv4
 }
 
@@ -261,6 +268,7 @@ func (r *ImageResource) Configure(
 
 	r.client = config.client
 	r.awsv4 = config.awsv4
+	r.cfg = config.cfg
 	r.role = config.role
 	r.expiration = config.expiration
 }
@@ -283,7 +291,7 @@ func (r *ImageResource) Create(
 
 	createImageRequestContent := *openapi.NewBuildImageRequestContent(data.ImageConfiguration.ValueString(), data.ImageId.ValueString())
 
-	reqCtx := context.WithValue(context.Background(), openapi.ContextAWSv4, r.awsv4)
+	reqCtx := context.WithValue(context.Background(), openapi.ContextAWSv4, r.getAWSv4())
 
 	createImageReq := r.client.ImageOperationsAPI.BuildImage(reqCtx)
 
@@ -388,7 +396,7 @@ func (r *ImageResource) Read(
 		return
 	}
 
-	reqCtx := context.WithValue(context.Background(), openapi.ContextAWSv4, r.awsv4)
+	reqCtx := context.WithValue(context.Background(), openapi.ContextAWSv4, r.getAWSv4())
 
 	data.Id = data.ImageId
 	imageSummary, err := r.getImage(reqCtx, data.ImageId.ValueString())
@@ -457,7 +465,7 @@ func (r *ImageResource) Update(
 		return
 	}
 
-	reqCtx := context.WithValue(context.Background(), openapi.ContextAWSv4, r.awsv4)
+	reqCtx := context.WithValue(context.Background(), openapi.ContextAWSv4, r.getAWSv4())
 
 	data.Id = data.ImageId
 	imageSummary, err := r.getImage(reqCtx, data.ImageId.ValueString())
@@ -535,7 +543,7 @@ func (r *ImageResource) Delete(
 		return
 	}
 
-	reqCtx := context.WithValue(context.Background(), openapi.ContextAWSv4, r.awsv4)
+	reqCtx := context.WithValue(context.Background(), openapi.ContextAWSv4, r.getAWSv4())
 	deleteImageRequest := r.client.ImageOperationsAPI.DeleteImage(
 		reqCtx,
 		data.ImageId.ValueString(),
@@ -576,7 +584,7 @@ func (r *ImageResource) ImportState(
 	resp *resource.ImportStateResponse,
 ) {
 	var data ImageResourceModel
-	reqCtx := context.WithValue(context.Background(), openapi.ContextAWSv4, r.awsv4)
+	reqCtx := context.WithValue(context.Background(), openapi.ContextAWSv4, r.getAWSv4())
 
 	imageSummary, err := r.getImage(reqCtx, req.ID)
 	if err != nil && err.Error() == failedToFindImageErr {

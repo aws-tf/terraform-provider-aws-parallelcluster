@@ -21,6 +21,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -50,8 +51,11 @@ func NewClusterResource() resource.Resource {
 
 // ClusterResource defines the resource implementation.
 type ClusterResource struct {
-	client *openapi.APIClient
-	awsv4  openapi.AWSv4
+	client     *openapi.APIClient
+	awsv4      openapi.AWSv4
+	cfg        aws.Config
+	role       string
+	expiration time.Time
 }
 
 // ClusterResourceModel describes the resource data model.
@@ -74,6 +78,7 @@ func (r *ClusterResource) getClient() *openapi.APIClient {
 }
 
 func (r *ClusterResource) getAWSv4() openapi.AWSv4 {
+	r.awsv4, r.expiration = refreshAWSv4(r.cfg, r.role, r.awsv4, r.expiration)
 	return r.awsv4
 }
 
@@ -213,6 +218,10 @@ func (r *ClusterResource) clusterStatus(
 func (r *ClusterResource) getCluster(
 	ctx context.Context, clusterName string, region *string,
 ) (openapi.DescribeClusterResponseContent, error) {
+	// Re-attach freshly-derived credentials on every call so long-running
+	// waits (create/update/delete polling) do not fail when the initial
+	// credentials expire mid-operation.
+	ctx = contextWithAWSv4(ctx, r.getAWSv4())
 	DescRequest := r.client.ClusterOperationsAPI.DescribeCluster(
 		ctx,
 		clusterName,
@@ -254,6 +263,9 @@ func (r *ClusterResource) Configure(
 
 	r.client = config.client
 	r.awsv4 = config.awsv4
+	r.cfg = config.cfg
+	r.role = config.role
+	r.expiration = config.expiration
 }
 
 func populateClusterResourceDesc(
@@ -364,7 +376,7 @@ func (r *ClusterResource) Create(
 
 	createClusterRequestContent := *openapi.NewCreateClusterRequestContent(data.ClusterName.ValueString(), data.ClusterConfiguration.ValueString())
 
-	reqCtx := context.WithValue(context.Background(), openapi.ContextAWSv4, r.awsv4)
+	reqCtx := context.WithValue(context.Background(), openapi.ContextAWSv4, r.getAWSv4())
 
 	createClusterReq := r.client.ClusterOperationsAPI.CreateCluster(reqCtx)
 
@@ -451,7 +463,7 @@ func (r *ClusterResource) Read(
 		return
 	}
 
-	reqCtx := context.WithValue(context.Background(), openapi.ContextAWSv4, r.awsv4)
+	reqCtx := context.WithValue(context.Background(), openapi.ContextAWSv4, r.getAWSv4())
 
 	clusterDesc, err := r.getCluster(
 		reqCtx,
@@ -493,7 +505,7 @@ func (r *ClusterResource) Update(
 		planData.ClusterConfiguration.ValueString(),
 	)
 
-	reqCtx := context.WithValue(context.Background(), openapi.ContextAWSv4, r.awsv4)
+	reqCtx := context.WithValue(context.Background(), openapi.ContextAWSv4, r.getAWSv4())
 
 	clusterUpdateRequest := r.client.ClusterOperationsAPI.UpdateCluster(
 		reqCtx,
@@ -599,7 +611,7 @@ func (r *ClusterResource) Delete(
 		return
 	}
 
-	reqCtx := context.WithValue(context.Background(), openapi.ContextAWSv4, r.awsv4)
+	reqCtx := context.WithValue(context.Background(), openapi.ContextAWSv4, r.getAWSv4())
 	deleteClusterRequest := r.client.ClusterOperationsAPI.DeleteCluster(
 		reqCtx,
 		data.ClusterName.ValueString(),
@@ -644,7 +656,7 @@ func (r *ClusterResource) ImportState(
 ) {
 	var data ClusterResourceModel
 
-	reqCtx := context.WithValue(context.Background(), openapi.ContextAWSv4, r.awsv4)
+	reqCtx := context.WithValue(context.Background(), openapi.ContextAWSv4, r.getAWSv4())
 
 	clusterDesc, err := r.getCluster(reqCtx, req.ID, nil)
 	if err != nil {

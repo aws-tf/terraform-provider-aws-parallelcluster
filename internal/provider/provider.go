@@ -46,6 +46,7 @@ type configData struct {
 	awsv4      openapi.AWSv4
 	expiration time.Time
 	role       string
+	cfg        aws.Config
 }
 
 // PclusterProvider defines the provider implementation.
@@ -369,6 +370,7 @@ func (p *PclusterProvider) Configure(
 
 	sdata.awsv4 = awsv4
 	sdata.expiration = expiration
+	sdata.cfg = cfg
 
 	resp.DataSourceData = sdata
 	resp.ResourceData = sdata

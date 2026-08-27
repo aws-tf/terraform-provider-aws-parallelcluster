@@ -16,7 +16,9 @@ package provider
 import (
 	"context"
 	"fmt"
+	"time"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -40,8 +42,11 @@ func NewComputeFleetStatusResource() resource.Resource {
 
 // ComputeFleetStatusResource defines the resource implementation.
 type ComputeFleetStatusResource struct {
-	client *openapi.APIClient
-	awsv4  openapi.AWSv4
+	client     *openapi.APIClient
+	awsv4      openapi.AWSv4
+	cfg        aws.Config
+	role       string
+	expiration time.Time
 }
 
 // ComputeFleetStatusResourceModel describes the resource data model.
@@ -59,6 +64,7 @@ func (r *ComputeFleetStatusResource) getClient() *openapi.APIClient {
 }
 
 func (r *ComputeFleetStatusResource) getAWSv4() openapi.AWSv4 {
+	r.awsv4, r.expiration = refreshAWSv4(r.cfg, r.role, r.awsv4, r.expiration)
 	return r.awsv4
 }
 
@@ -172,6 +178,9 @@ func (r *ComputeFleetStatusResource) Configure(
 
 	r.client = client.client
 	r.awsv4 = client.awsv4
+	r.cfg = client.cfg
+	r.role = client.role
+	r.expiration = client.expiration
 }
 
 func (r *ComputeFleetStatusResource) Create(
@@ -189,7 +198,7 @@ func (r *ComputeFleetStatusResource) Create(
 	}
 
 	data.Id = data.ClusterName
-	reqCtx := context.WithValue(context.Background(), openapi.ContextAWSv4, r.awsv4)
+	reqCtx := context.WithValue(context.Background(), openapi.ContextAWSv4, r.getAWSv4())
 
 	computeFleetReqContent := openapi.UpdateComputeFleetRequestContent{}
 	status, err := openapi.NewRequestedComputeFleetStatusFromValue(data.StatusRequest.ValueString())
@@ -239,7 +248,7 @@ func (r *ComputeFleetStatusResource) Read(
 		return
 	}
 
-	reqCtx := context.WithValue(context.Background(), openapi.ContextAWSv4, r.awsv4)
+	reqCtx := context.WithValue(context.Background(), openapi.ContextAWSv4, r.getAWSv4())
 	name := data.ClusterName.ValueString()
 
 	computeFleet, rawHttp, err := r.client.ClusterComputeFleetAPI.DescribeComputeFleet(reqCtx, name).
@@ -271,7 +280,7 @@ func (r *ComputeFleetStatusResource) Update(
 		return
 	}
 
-	reqCtx := context.WithValue(context.Background(), openapi.ContextAWSv4, r.awsv4)
+	reqCtx := context.WithValue(context.Background(), openapi.ContextAWSv4, r.getAWSv4())
 
 	computeFleetReqContent := openapi.UpdateComputeFleetRequestContent{}
 	status, err := openapi.NewRequestedComputeFleetStatusFromValue(data.StatusRequest.ValueString())

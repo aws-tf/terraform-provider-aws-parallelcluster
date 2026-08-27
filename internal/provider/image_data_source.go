@@ -18,7 +18,9 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"time"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
@@ -66,8 +68,11 @@ func NewImageDataSource() datasource.DataSource {
 
 // ImageDataSource defines the data source implementation.
 type ImageDataSource struct {
-	client *openapi.APIClient
-	awsv4  openapi.AWSv4
+	client     *openapi.APIClient
+	awsv4      openapi.AWSv4
+	cfg        aws.Config
+	role       string
+	expiration time.Time
 }
 
 // ImageDataSourceModel describes the data source data model.
@@ -84,6 +89,7 @@ func (d *ImageDataSource) getClient() *openapi.APIClient {
 }
 
 func (d *ImageDataSource) getAWSv4() openapi.AWSv4 {
+	d.awsv4, d.expiration = refreshAWSv4(d.cfg, d.role, d.awsv4, d.expiration)
 	return d.awsv4
 }
 
@@ -164,6 +170,9 @@ func (d *ImageDataSource) Configure(
 
 	d.client = client.client
 	d.awsv4 = client.awsv4
+	d.cfg = client.cfg
+	d.role = client.role
+	d.expiration = client.expiration
 }
 
 func (d *ImageDataSource) Read(
@@ -180,7 +189,7 @@ func (d *ImageDataSource) Read(
 		return
 	}
 
-	reqCtx := context.WithValue(ctx, openapi.ContextAWSv4, d.awsv4)
+	reqCtx := context.WithValue(ctx, openapi.ContextAWSv4, d.getAWSv4())
 
 	imageReq := d.client.ImageOperationsAPI.DescribeImage(reqCtx, data.ImageId.ValueString())
 
