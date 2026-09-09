@@ -3,6 +3,7 @@ package provider
 import (
 	"context"
 	"fmt"
+	"log"
 	"net/http"
 	"net/http/httptest"
 	"time"
@@ -43,6 +44,10 @@ func refreshAWSv4(
 
 	awsv4, newExpiration, err := ConfigureAWSv4(cfg, role)
 	if err != nil {
+		log.Printf(
+			"[ERROR] failed to refresh AWS SigV4 credentials, reusing existing credentials: %v",
+			err,
+		)
 		return current, expiration
 	}
 	return awsv4, newExpiration

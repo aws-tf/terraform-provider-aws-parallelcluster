@@ -15,6 +15,7 @@ package provider
 
 import (
 	"context"
+	"errors"
 	"reflect"
 	"testing"
 	"time"
@@ -67,6 +68,34 @@ func TestUnitRefreshAWSv4(t *testing.T) {
 			"Error matching output and expected. \nO: %#v\nE: %#v",
 			out,
 			expectedRefresh,
+		)
+	}
+
+	// When credentials are within the refresh window but re-deriving them fails,
+	// the current (stale) credentials and expiration are returned unchanged so
+	// callers can still make a best-effort request.
+	failingCfg := aws.Config{
+		Region: "us-east-1",
+		Credentials: aws.CredentialsProviderFunc(
+			func(context.Context) (aws.Credentials, error) {
+				return aws.Credentials{}, errors.New("credential retrieval failed")
+			},
+		),
+	}
+	nearExpiry := time.Now().Add(time.Minute)
+	out, outExpiration = refreshAWSv4(failingCfg, "", current, nearExpiry)
+	if !reflect.DeepEqual(out, current) {
+		t.Fatalf(
+			"Error expected current credentials on refresh failure. \nO: %#v\nE: %#v",
+			out,
+			current,
+		)
+	}
+	if !outExpiration.Equal(nearExpiry) {
+		t.Fatalf(
+			"Error expected unchanged expiration on refresh failure. \nO: %#v\nE: %#v",
+			outExpiration,
+			nearExpiry,
 		)
 	}
 }
