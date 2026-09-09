@@ -294,7 +294,6 @@ func (r *ImageResource) Create(
 	reqCtx := context.WithValue(context.Background(), openapi.ContextAWSv4, r.getAWSv4())
 
 	createImageReq := r.client.ImageOperationsAPI.BuildImage(reqCtx)
-
 	if !data.Region.IsNull() {
 		createImageReq = createImageReq.Region(data.Region.ValueString())
 	}
@@ -396,10 +395,8 @@ func (r *ImageResource) Read(
 		return
 	}
 
-	reqCtx := context.WithValue(context.Background(), openapi.ContextAWSv4, r.getAWSv4())
-
 	data.Id = data.ImageId
-	imageSummary, err := r.getImage(reqCtx, data.ImageId.ValueString())
+	imageSummary, err := r.getImage(context.Background(), data.ImageId.ValueString())
 	if err != nil && err.Error() != failedToFindImageErr {
 		resp.Diagnostics.AddError("Error while retrieving image.", err.Error())
 	}
@@ -465,10 +462,8 @@ func (r *ImageResource) Update(
 		return
 	}
 
-	reqCtx := context.WithValue(context.Background(), openapi.ContextAWSv4, r.getAWSv4())
-
 	data.Id = data.ImageId
-	imageSummary, err := r.getImage(reqCtx, data.ImageId.ValueString())
+	imageSummary, err := r.getImage(context.Background(), data.ImageId.ValueString())
 	if err != nil && err.Error() != failedToFindImageErr {
 		resp.Diagnostics.AddError("Failed to find image.", err.Error())
 	}
@@ -584,9 +579,8 @@ func (r *ImageResource) ImportState(
 	resp *resource.ImportStateResponse,
 ) {
 	var data ImageResourceModel
-	reqCtx := context.WithValue(context.Background(), openapi.ContextAWSv4, r.getAWSv4())
 
-	imageSummary, err := r.getImage(reqCtx, req.ID)
+	imageSummary, err := r.getImage(context.Background(), req.ID)
 	if err != nil && err.Error() == failedToFindImageErr {
 		resp.Diagnostics.AddError("Failed to find image.", err.Error())
 	}

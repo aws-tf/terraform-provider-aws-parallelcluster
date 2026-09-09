@@ -463,10 +463,8 @@ func (r *ClusterResource) Read(
 		return
 	}
 
-	reqCtx := context.WithValue(context.Background(), openapi.ContextAWSv4, r.getAWSv4())
-
 	clusterDesc, err := r.getCluster(
-		reqCtx,
+		context.Background(),
 		data.Id.ValueString(),
 		data.Region.ValueStringPointer(),
 	)
@@ -656,9 +654,7 @@ func (r *ClusterResource) ImportState(
 ) {
 	var data ClusterResourceModel
 
-	reqCtx := context.WithValue(context.Background(), openapi.ContextAWSv4, r.getAWSv4())
-
-	clusterDesc, err := r.getCluster(reqCtx, req.ID, nil)
+	clusterDesc, err := r.getCluster(context.Background(), req.ID, nil)
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to find cluster.", err.Error())
 		return
