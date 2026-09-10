@@ -464,7 +464,7 @@ func (r *ClusterResource) Read(
 	}
 
 	clusterDesc, err := r.getCluster(
-		context.Background(),
+		ctx,
 		data.Id.ValueString(),
 		data.Region.ValueStringPointer(),
 	)
@@ -654,7 +654,7 @@ func (r *ClusterResource) ImportState(
 ) {
 	var data ClusterResourceModel
 
-	clusterDesc, err := r.getCluster(context.Background(), req.ID, nil)
+	clusterDesc, err := r.getCluster(ctx, req.ID, nil)
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to find cluster.", err.Error())
 		return

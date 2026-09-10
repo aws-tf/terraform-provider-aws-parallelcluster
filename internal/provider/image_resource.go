@@ -396,7 +396,7 @@ func (r *ImageResource) Read(
 	}
 
 	data.Id = data.ImageId
-	imageSummary, err := r.getImage(context.Background(), data.ImageId.ValueString())
+	imageSummary, err := r.getImage(ctx, data.ImageId.ValueString())
 	if err != nil && err.Error() != failedToFindImageErr {
 		resp.Diagnostics.AddError("Error while retrieving image.", err.Error())
 	}
@@ -463,7 +463,7 @@ func (r *ImageResource) Update(
 	}
 
 	data.Id = data.ImageId
-	imageSummary, err := r.getImage(context.Background(), data.ImageId.ValueString())
+	imageSummary, err := r.getImage(ctx, data.ImageId.ValueString())
 	if err != nil && err.Error() != failedToFindImageErr {
 		resp.Diagnostics.AddError("Failed to find image.", err.Error())
 	}
@@ -580,7 +580,7 @@ func (r *ImageResource) ImportState(
 ) {
 	var data ImageResourceModel
 
-	imageSummary, err := r.getImage(context.Background(), req.ID)
+	imageSummary, err := r.getImage(ctx, req.ID)
 	if err != nil && err.Error() == failedToFindImageErr {
 		resp.Diagnostics.AddError("Failed to find image.", err.Error())
 	}
