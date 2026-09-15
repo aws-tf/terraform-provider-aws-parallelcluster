@@ -19,7 +19,9 @@ import (
 	"io"
 	"math/big"
 	"net/http"
+	"time"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
@@ -69,8 +71,11 @@ func NewClusterDataSource() datasource.DataSource {
 
 // ClusterDataSource defines the data source implementation.
 type ClusterDataSource struct {
-	client *openapi.APIClient
-	awsv4  openapi.AWSv4
+	client     *openapi.APIClient
+	awsv4      openapi.AWSv4
+	cfg        aws.Config
+	role       string
+	expiration time.Time
 }
 
 // ClusterDataSourceModel describes the data source data model.
@@ -88,6 +93,7 @@ func (d *ClusterDataSource) getClient() *openapi.APIClient {
 }
 
 func (d *ClusterDataSource) getAWSv4() openapi.AWSv4 {
+	d.awsv4, d.expiration = refreshAWSv4(d.cfg, d.role, d.awsv4, d.expiration)
 	return d.awsv4
 }
 
@@ -178,6 +184,9 @@ func (d *ClusterDataSource) Configure(
 
 	d.client = client.client
 	d.awsv4 = client.awsv4
+	d.cfg = client.cfg
+	d.role = client.role
+	d.expiration = client.expiration
 }
 
 func populateClusterDataSource(
@@ -433,7 +442,7 @@ func (d *ClusterDataSource) Read(
 		return
 	}
 
-	reqCtx := context.WithValue(context.Background(), openapi.ContextAWSv4, d.awsv4)
+	reqCtx := context.WithValue(context.Background(), openapi.ContextAWSv4, d.getAWSv4())
 	descRequest := d.client.ClusterOperationsAPI.DescribeCluster(
 		reqCtx,
 		data.ClusterName.ValueString(),

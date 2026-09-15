@@ -17,7 +17,9 @@ import (
 	"context"
 	"fmt"
 	"sort"
+	"time"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
@@ -55,8 +57,11 @@ func NewClusterListDataSource() datasource.DataSource {
 
 // ClusterListDataSource defines the data source implementation.
 type ClusterListDataSource struct {
-	client *openapi.APIClient
-	awsv4  openapi.AWSv4
+	client     *openapi.APIClient
+	awsv4      openapi.AWSv4
+	cfg        aws.Config
+	role       string
+	expiration time.Time
 }
 
 // ClusterListDataSourceModel describes the data source data model.
@@ -71,6 +76,7 @@ func (d *ClusterListDataSource) getClient() *openapi.APIClient {
 }
 
 func (d *ClusterListDataSource) getAWSv4() openapi.AWSv4 {
+	d.awsv4, d.expiration = refreshAWSv4(d.cfg, d.role, d.awsv4, d.expiration)
 	return d.awsv4
 }
 
@@ -138,6 +144,9 @@ func (d *ClusterListDataSource) Configure(
 
 	d.client = client.client
 	d.awsv4 = client.awsv4
+	d.cfg = client.cfg
+	d.role = client.role
+	d.expiration = client.expiration
 }
 
 func (d *ClusterListDataSource) Read(
@@ -154,7 +163,7 @@ func (d *ClusterListDataSource) Read(
 		return
 	}
 
-	reqCtx := context.WithValue(context.Background(), openapi.ContextAWSv4, d.awsv4)
+	reqCtx := context.WithValue(context.Background(), openapi.ContextAWSv4, d.getAWSv4())
 
 	clusterStatuses := make([]openapi.ClusterStatusFilteringOption, 0)
 	for _, s := range data.ClusterStatus.Elements() {

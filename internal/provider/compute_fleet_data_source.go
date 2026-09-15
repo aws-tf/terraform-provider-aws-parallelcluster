@@ -16,7 +16,9 @@ package provider
 import (
 	"context"
 	"fmt"
+	"time"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -36,8 +38,11 @@ func NewComputeFleetDataSource() datasource.DataSource {
 
 // ComputeFleetDataSource defines the data source implementation.
 type ComputeFleetDataSource struct {
-	client *openapi.APIClient
-	awsv4  openapi.AWSv4
+	client     *openapi.APIClient
+	awsv4      openapi.AWSv4
+	cfg        aws.Config
+	role       string
+	expiration time.Time
 }
 
 // ComputeFleetDataSourceModel describes the data source data model.
@@ -53,6 +58,7 @@ func (d *ComputeFleetDataSource) getClient() *openapi.APIClient {
 }
 
 func (d *ComputeFleetDataSource) getAWSv4() openapi.AWSv4 {
+	d.awsv4, d.expiration = refreshAWSv4(d.cfg, d.role, d.awsv4, d.expiration)
 	return d.awsv4
 }
 
@@ -125,6 +131,9 @@ func (d *ComputeFleetDataSource) Configure(
 
 	d.client = client.client
 	d.awsv4 = client.awsv4
+	d.cfg = client.cfg
+	d.role = client.role
+	d.expiration = client.expiration
 }
 
 func (d *ComputeFleetDataSource) Read(
@@ -141,7 +150,7 @@ func (d *ComputeFleetDataSource) Read(
 		return
 	}
 
-	reqCtx := context.WithValue(context.Background(), openapi.ContextAWSv4, d.awsv4)
+	reqCtx := context.WithValue(context.Background(), openapi.ContextAWSv4, d.getAWSv4())
 
 	computeFleet, rawHttp, err := d.client.ClusterComputeFleetAPI.DescribeComputeFleet(
 		reqCtx,

@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## 1.3.0
+
+**CHANGES**
+
+* Refresh API credentials between API requests to prevent expiration during the execution of a Terraform command.
+
 ## 1.2.0
 
 **BUG FIX**

@@ -15,11 +15,15 @@ package provider
 
 import (
 	"context"
+	"errors"
 	"os"
 	"reflect"
 	"strings"
 	"testing"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/credentials"
+	openapi "github.com/aws-tf/terraform-provider-aws-parallelcluster/internal/provider/openapi"
 	"github.com/hashicorp/terraform-plugin-framework/providerserver"
 	"github.com/hashicorp/terraform-plugin-go/tfprotov6"
 
@@ -116,4 +120,52 @@ func TestUnitPclusterProviderSchema(t *testing.T) {
 
 func TestUnitPclusterProviderConfigure(t *testing.T) {
 	t.Skip()
+}
+
+func TestUnitConfigureAWSv4(t *testing.T) {
+	t.Parallel()
+
+	// When the initial credential configuration fails (e.g. credentials cannot
+	// be retrieved), ConfigureAWSv4 surfaces the error so the provider's
+	// Configure can report it instead of proceeding with invalid credentials.
+	failingCfg := aws.Config{
+		Region: "us-east-1",
+		Credentials: aws.CredentialsProviderFunc(
+			func(context.Context) (aws.Credentials, error) {
+				return aws.Credentials{}, errors.New("credential retrieval failed")
+			},
+		),
+	}
+	_, _, err := ConfigureAWSv4(failingCfg, "")
+	if err == nil {
+		t.Fatalf("Error expected when initial credential configuration fails.")
+	}
+	if !strings.Contains(err.Error(), "failed to retrieve aws credentials") {
+		t.Fatalf("Error message did not describe the failure. \nO: %v", err)
+	}
+
+	// When credentials resolve successfully, ConfigureAWSv4 returns populated
+	// SigV4 credentials and no error.
+	staticCfg := aws.Config{
+		Region: "us-east-1",
+		Credentials: credentials.NewStaticCredentialsProvider(
+			"testKey",
+			"testSecret",
+			"testToken",
+		),
+	}
+	awsv4, _, err := ConfigureAWSv4(staticCfg, "")
+	if err != nil {
+		t.Fatalf("Not expecting error on successful credential configuration. \nO: %v", err)
+	}
+	expected := openapi.AWSv4{
+		AccessKey:    "testKey",
+		SecretKey:    "testSecret",
+		SessionToken: "testToken",
+		Region:       "us-east-1",
+		Service:      "execute-api",
+	}
+	if !reflect.DeepEqual(awsv4, expected) {
+		t.Fatalf("Error matching output and expected. \nO: %#v\nE: %#v", awsv4, expected)
+	}
 }

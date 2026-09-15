@@ -3,14 +3,66 @@ package provider
 import (
 	"context"
 	"fmt"
+	"log"
 	"net/http"
 	"net/http/httptest"
+	"time"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
 	openapi "github.com/aws-tf/terraform-provider-aws-parallelcluster/internal/provider/openapi"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 )
+
+// awsv4RefreshWindow is how long before expiration we proactively refresh
+// credentials, so that requests are always signed with credentials that have
+// enough remaining lifetime to complete, rather than ones about to expire.
+const awsv4RefreshWindow = 5 * time.Minute
+
+// refreshAWSv4 returns freshly-derived SigV4 credentials when the current ones
+// are at or near expiration, otherwise it returns the current credentials
+// unchanged.
+//
+// Refresh is skipped when expiration is the zero value (credentials supplied
+// directly, e.g. in unit tests) so existing behavior is preserved. When a
+// refresh is attempted but fails, the current (possibly stale) credentials and
+// expiration are returned so callers can still make a best-effort request and
+// surface the original error.
+func refreshAWSv4(
+	cfg aws.Config,
+	role string,
+	current openapi.AWSv4,
+	expiration time.Time,
+) (openapi.AWSv4, time.Time) {
+	if expiration.IsZero() {
+		return current, expiration
+	}
+	if time.Now().Add(awsv4RefreshWindow).Before(expiration) {
+		return current, expiration
+	}
+
+	awsv4, newExpiration, err := ConfigureAWSv4(cfg, role)
+	if err != nil {
+		log.Printf(
+			"[ERROR] failed to refresh AWS SigV4 credentials, reusing existing credentials: %v",
+			err,
+		)
+		return current, expiration
+	}
+	return awsv4, newExpiration
+}
+
+// contextWithAWSv4 returns ctx with the given SigV4 credentials attached for
+// request signing. When the credentials are empty (e.g. unit tests that do not
+// configure credentials), ctx is returned unchanged so the signer is skipped,
+// preserving the pre-refresh behavior.
+func contextWithAWSv4(ctx context.Context, awsv4 openapi.AWSv4) context.Context {
+	if awsv4.AccessKey == "" && awsv4.SecretKey == "" && awsv4.SessionToken == "" {
+		return ctx
+	}
+	return context.WithValue(ctx, openapi.ContextAWSv4, awsv4)
+}
 
 type mockCfg struct {
 	out         jsonable
