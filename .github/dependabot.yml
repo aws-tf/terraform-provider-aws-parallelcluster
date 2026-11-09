@@ -1,7 +1,65 @@
+# Options reference:
+# https://docs.github.com/en/code-security/dependabot/working-with-dependabot/dependabot-options-reference
+#
+# `open-pull-requests-limit` caps version updates only; security updates use a
+# separate fixed limit of 10 that this key cannot change.
+# We align the two limits to the same value for consistency.
+#
+# Why groups: by default Dependabot opens one pull request per dependency, per
+# directory. Dependencies matching a group share one pull request;
+# anything matching no group still gets its own.
+#
+# We therefore group only what is released in lockstep and reviewed as a unit,
+# and leave everything else individual.
+#
+# aws-tf/aws-parallelcluster is deliberately in no group: it is our own
+# provider, so bumping the constraint in the published examples is a release
+# decision that deserves its own pull request.
 version: 2
 updates:
+  # Two Go modules: the provider at the root, and the generated OpenAPI client.
+  # Dependabot is not recursive, so listing only `/` would leave the client unscanned.
   - package-ecosystem: gomod
+    directories:
+      - /
+      - /internal/provider/openapi
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 10
+    groups:
+      aws-sdk-go-v2:
+        patterns:
+          - github.com/aws/aws-sdk-go-v2
+          - github.com/aws/aws-sdk-go-v2/*
+      terraform-plugin:
+        patterns:
+          - github.com/hashicorp/terraform-plugin-*
+
+  # GitHub Actions require to scan the directory / by design.
+  # Ref: https://docs.github.com/en/code-security/dependabot/working-with-dependabot/dependabot-options-reference#directories-or-directory--
+  - package-ecosystem: github-actions
     directory: /
     schedule:
       interval: daily
-    open-pull-requests-limit: 30
+    open-pull-requests-limit: 10
+    groups:
+      github-actions:
+        patterns:
+          - "*"
+
+  # Provider constraints in the published doc examples and the acceptance-test
+  # fixtures. Terraform is not recursive either; the three `/examples/*` globs
+  # cover the nesting depths in use.
+  - package-ecosystem: terraform
+    directories:
+      - /examples/*
+      - /examples/*/*
+      - /examples/*/*/*
+      - /internal/provider/files/*
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 10
+    groups:
+      hashicorp-providers:
+        patterns:
+          - hashicorp/*
