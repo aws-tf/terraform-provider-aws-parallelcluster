@@ -18,23 +18,23 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4.1.4
+        uses: actions/checkout@v7
         with:
           # Allow goreleaser to access older tag information.
           fetch-depth: 0
       - name: Setup Go
-        uses: actions/setup-go@v5.0.1
+        uses: actions/setup-go@v7
         with:
           go-version-file: 'go.mod'
           cache: true
       - name: Import GPG key
-        uses: crazy-max/ghaction-import-gpg@v6.1.0
+        uses: crazy-max/ghaction-import-gpg@v7
         id: import_gpg
         with:
           gpg_private_key: ${{ secrets.TERRAFORM_REGISTRY_GPG_PRIVATE_KEY }}
           passphrase: ${{ secrets.TERRAFORM_REGISTRY_GPG_PASSPHRASE }}
       - name: Run GoReleaser
-        uses: goreleaser/goreleaser-action@v5.1.0
+        uses: goreleaser/goreleaser-action@v7
         with:
           args: release --clean
         env:
