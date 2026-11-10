@@ -13,14 +13,16 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        # The oldest version we support, which is the `go` directive in go.mod,
+        # and the newest one golangci-lint can analyse.
         name:
-          - Code Checks with Go 1.23.0
-          - Code Checks with Go 1.24.1
+          - Code Checks with Go 1.25.0
+          - Code Checks with Go 1.26.11
         include:
-          - name: Code Checks with Go 1.23.0
-            go: 1.23.0
-          - name: Code Checks with Go 1.24.1
-            go: 1.24.1
+          - name: Code Checks with Go 1.25.0
+            go: 1.25.0
+          - name: Code Checks with Go 1.26.11
+            go: 1.26.11
     name: lint
     runs-on: ubuntu-latest
     steps:

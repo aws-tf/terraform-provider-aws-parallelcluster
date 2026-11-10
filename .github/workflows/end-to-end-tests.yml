@@ -29,7 +29,8 @@ jobs:
       fail-fast: false
       matrix:
         test_target: [test_end2end_cluster, test_end2end_image]
-        go: [1.22.0]
+        # Must satisfy the `go` directive in go.mod.
+        go: [1.27.4]
         terraform: [1.8.0]
     steps:
       - name: Checkout Repository
