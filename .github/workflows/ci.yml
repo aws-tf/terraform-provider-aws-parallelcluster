@@ -2,8 +2,11 @@
 name: Continuous Integration
 
 on:
-  - push
-  - pull_request
+  # Pushes to main publish the coverage baseline.
+  push:
+    branches:
+      - main
+  pull_request:
 
 jobs:
   unit-tests:
@@ -16,6 +19,10 @@ jobs:
       COVERAGE_PATH: cover.out
       PREV_COVERAGE_PATH: min_coverage/cover.out
       TF_EXAMPLES_PATH: examples
+      # Hard floor. The bar never goes below this, whatever main reports.
+      MIN_COVERAGE: "82.0"
+      # `go tool cover` reports one decimal place.
+      COVERAGE_TOLERANCE: "0.1"
       # This is not currently exposed.
       # See: https://github.com/orgs/community/discussions/10052
       # See: https://github.com/actions/runner/issues/853
@@ -23,8 +30,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        # Must satisfy the `go` directive in go.mod.
         go:
-          - 1.22.0
+          - 1.27.4
         terraform:
           - 1.8.0
     steps:
@@ -49,7 +57,8 @@ jobs:
         run: go test ./... -v -run="^TestUnit" -cover -coverprofile=${COVERAGE_PATH}
         timeout-minutes: 10
 
-        # Find and Pull the archived cover report of the last run
+        # Find and Pull the archived cover report of the last run.
+        # Only pushes to main publish a baseline, so only merged code sets it.
       - name: Retrieve Previous Successful Run ID
         id: prev-run-id
         continue-on-error: true
@@ -60,17 +69,20 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               workflow_id: process.env.WORKFLOW_FILE_NAME,
+              branch: "main",
+              event: "push",
               status: "success",
               per_page: 1
             })
             if (runs.data.total_count === 0) {
-              core.setFailed("Previous workflow run not found.");
+              core.warning(`No successful push run found on main to extract the coverage from.`);
               return;
             }
             return runs.data.workflow_runs[0].id;
           result-encoding: string
       - name: Download Coverage
         id: download-coverage
+        if: steps.prev-run-id.outputs.result != ''
         continue-on-error: true
         uses: actions/download-artifact@v4
         with:
@@ -79,27 +91,35 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           run-id: ${{ steps.prev-run-id.outputs.result }}
 
-        # Verify that coverage did not decrease from last run.
+        # Require the higher of MIN_COVERAGE and the last push to main, so a
+        # force-merged drop cannot lower the bar below MIN_COVERAGE.
+        # Pull requests only, so a push can still record an accepted drop.
       - name: Check for minimum coverage
-        if: steps.download-coverage.outcome == 'success'
+        if: github.event_name == 'pull_request'
         run: |
           COVERAGE=$(go tool cover -func=${COVERAGE_PATH} | awk '/^total:/{print $3}')
+          MIN=${MIN_COVERAGE}
 
           if [ -e ${PREV_COVERAGE_PATH} ] ; then
-            MIN_COVERAGE=$(go tool cover -func=${PREV_COVERAGE_PATH} | awk '/^total:/{print $3}')
+            PREV_COVERAGE=$(go tool cover -func=${PREV_COVERAGE_PATH} | awk '/^total:/{print $3}')
+            BASELINE=$(echo "${PREV_COVERAGE%\%} - ${COVERAGE_TOLERANCE}" | bc)
+            echo "Baseline from the last push to main: ${PREV_COVERAGE}"
+            if [ $(echo "${BASELINE} > ${MIN}" | bc) -gt 0 ]; then
+              MIN=${BASELINE}
+            fi
           else
-            echo "No previous coverage file found at ${PREV_COVERAGE_PATH}."
+            echo "No baseline available; using MIN_COVERAGE=${MIN_COVERAGE}."
+          fi
+
+          printf '%s\n' "Required: ${MIN}%" "Current coverage: ${COVERAGE}"
+          if [ $(echo "${COVERAGE%\%} < ${MIN}" | bc) -gt 0 ]; then
+            echo "ERROR: Coverage ${COVERAGE} is below ${MIN}%."
             exit 1
           fi
 
-          printf '%s\n' "Previous coverage: ${MIN_COVERAGE}" "Current coverage: ${COVERAGE}"
-          if [ $(echo "${COVERAGE%\%}<${MIN_COVERAGE%\%}"|bc) -gt 0 ]; then
-            echo "ERROR: Coverage fell below previous run."
-            exit 1
-          fi
-
-        # Archive the cover report of the current test run.
+        # Archive the cover report as the new baseline, on merges to main only.
       - name: Archive coverage results
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: actions/upload-artifact@v4
         with:
           name: coverage-report-${{ matrix.go }}
