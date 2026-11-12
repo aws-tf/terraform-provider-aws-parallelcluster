@@ -21,6 +21,7 @@ import (
 	"os"
 	"path"
 	"reflect"
+	"strings"
 	"testing"
 
 	openapi "github.com/aws-tf/terraform-provider-aws-parallelcluster/internal/provider/openapi"
@@ -36,6 +37,7 @@ type imageTestConfig struct {
 	endpoint     string
 	region       string
 	az           string
+	nameSuffix   string
 }
 
 func TestEnd2EndImage(t *testing.T) {
@@ -67,6 +69,13 @@ func TestEnd2EndImage(t *testing.T) {
 		testConfig.imageId = "pcluster-image-build-test-01"
 	}
 
+	if suffix, ok := os.LookupEnv("TEST_NAME_SUFFIX"); ok && suffix != "" {
+		if !strings.HasPrefix(suffix, "-") {
+			suffix = "-" + suffix
+		}
+		testConfig.nameSuffix = suffix
+	}
+
 	if endpoint, ok := os.LookupEnv("TEST_ENDPOINT"); ok {
 		testConfig.endpoint = fmt.Sprintf("%q", endpoint)
 	}
@@ -88,11 +97,10 @@ func TestEnd2EndImage(t *testing.T) {
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		ExternalProviders: map[string]resource.ExternalProvider{
-			"aws":    {Source: "hashicorp/aws", VersionConstraint: "~> 5.0"},
-			"tls":    {Source: "hashicorp/tls", VersionConstraint: ">= 3.4"},
-			"random": {Source: "hashicorp/random", VersionConstraint: ">= 3.6.2"},
-			"local":  {Source: "hashicorp/local"},
-			"null":   {Source: "hashicorp/null"},
+			"aws":   {Source: "hashicorp/aws", VersionConstraint: "~> 5.0"},
+			"tls":   {Source: "hashicorp/tls", VersionConstraint: ">= 3.4"},
+			"local": {Source: "hashicorp/local"},
+			"null":  {Source: "hashicorp/null"},
 		},
 		Steps: []resource.TestStep{
 			// Create and Read testing
@@ -241,14 +249,12 @@ data "aws-parallelcluster_list_official_images" "parent_image" {
         architecture = "x86_64"
 }
 
-resource "random_uuid" "test" {}
-
 data "aws_caller_identity" "current" {}
 
 data "aws_partition" "current" {}
 
 resource "aws_iam_role" "cleanup_lambda_role" {
-	name = "CleanupLambdaRole-${random_uuid.test.result}"
+	name = "CleanupLambdaRole%s"
 	path = "/parallelcluster/"
 	assume_role_policy = jsonencode({
 		Version = "2012-10-17"
@@ -265,7 +271,7 @@ resource "aws_iam_role" "cleanup_lambda_role" {
 }
 
 resource "aws_iam_policy" "cleanup_lambda_policy" {
-  name = "CleanupLambdaPolicy-${random_uuid.test.result}"
+  name = "CleanupLambdaPolicy%s"
   path = "/parallelcluster/"
   policy = jsonencode(
 	 {
@@ -390,7 +396,7 @@ resource "aws-parallelcluster_image" "%s" {
   image_configuration = data.null_data_source.values.inputs.image_config
   rollback_on_failure = false
 }
-`, c.region, c.az, c.resourceName, c.imageId)
+`, c.region, c.az, c.nameSuffix, c.nameSuffix, c.resourceName, c.imageId)
 }
 
 func TestUnitWaitImageReady(t *testing.T) {
