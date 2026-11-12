@@ -124,3 +124,53 @@ jobs:
         with:
           name: coverage-report-${{ matrix.go }}
           path: ${{env.COVERAGE_PATH}}
+
+  check-terraform:
+    name: Check Terraform
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        path:
+          - ./examples/provider
+          - ./examples/resources/aws-parallelcluster_cluster
+          - ./examples/resources/aws-parallelcluster_compute_fleet_status
+          - ./examples/resources/aws-parallelcluster_image
+          - ./examples/full/resources/aws-parallelcluster_cluster
+          - ./examples/full/resources/aws-parallelcluster_image
+          - ./examples/full/data-sources/aws-parallelcluster_cluster
+          - ./examples/full/data-sources/aws-parallelcluster_image
+        # The oldest version HashiCorp still supports, and the newest one. HashiCorp
+        # supports the current minor and the one before it, so 1.16 goes end of life when
+        # 1.18 is released: bump both entries then.
+        # See: https://endoflife.date/terraform
+        terraform:
+          - 1.16.7
+          - 1.17.2
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v7
+      - name: Setup Terraform ${{ matrix.terraform }}
+        uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_version: ${{ matrix.terraform }}
+          terraform_wrapper: false
+
+        # Covers the whole repository, the acceptance-test fixtures included, so it
+        # runs once per Terraform version.
+      - name: Terraform Format
+        if: matrix.path == './examples/provider'
+        run: terraform fmt -recursive -check -diff ./
+
+        # -backend=false: the examples declare no backend and validation needs no
+        # state. -input=false: a missing value must fail, not hang. -upgrade: lock
+        # files are Git-ignored, so resolve what each example pins.
+      - name: Terraform Init
+        run: terraform -chdir=${{ matrix.path }} init -backend=false -input=false -upgrade -no-color
+        timeout-minutes: 10
+      - name: Terraform Validate
+        run: terraform -chdir=${{ matrix.path }} validate -no-color
+        timeout-minutes: 5
+
