@@ -237,7 +237,7 @@ resource "aws_default_security_group" "default" {
 
 data "aws-parallelcluster_list_official_images" "parent_image" {
         region = local.default_region
-        os = "alinux2"
+        os = "alinux2023"
         architecture = "x86_64"
 }
 

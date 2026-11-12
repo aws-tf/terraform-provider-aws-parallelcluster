@@ -16,7 +16,7 @@ locals {
   example_config = {
     Region = var.region
     Image = {
-      Os = "alinux2"
+      Os = "alinux2023"
     }
     HeadNode = {
       InstanceType = var.head_node_type
