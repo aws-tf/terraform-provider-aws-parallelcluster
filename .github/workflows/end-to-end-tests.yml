@@ -58,8 +58,17 @@ jobs:
           aws-region: us-east-1
           role-to-assume: ${{ secrets.ACTION_E2E_TESTS_ROLE }}
           role-session-name: GitHub_${{ github.event.repository.name }}_End2EndTests
-      - name: Generate Test ID
-        run: echo "TEST_ID=$(uuidgen)" >> $GITHUB_ENV
+      # Names the cluster and the image after this workflow run, so that
+      # concurrent runs cannot clash.
+      - name: Compute Resource Name Suffix
+        env:
+          GH_RUN_ID: ${{ github.run_id }}
+          GH_RUN_ATTEMPT: ${{ github.run_attempt }}
+          GH_JOB_INDEX: ${{ strategy.job-index }}
+        run: |
+          SUFFIX="-gh${GH_RUN_ID}-${GH_RUN_ATTEMPT}-${GH_JOB_INDEX}"
+          echo "E2E_NAME_SUFFIX=${SUFFIX}" >> "${GITHUB_ENV}"
+          echo "Resource name suffix: ${SUFFIX}"
       - name: Execute Tests (${{ matrix.test_target }})
         env:
           TF_ACC: "1"
@@ -67,10 +76,15 @@ jobs:
           TEST_AVAILABILITY_ZONE: "us-east-1a"
           TEST_PCAPI_STACK_NAME: "ParallelClusterAPI"
           TEST_USE_USER_ROLE: "true"
-          TEST_CLUSTER_NAME: "test-cluster-github-${{ env.TEST_ID }}"
-          TEST_IMAGE_NAME: "test-image-github-${{ env.TEST_ID }}"
+          TEST_CLUSTER_NAME: "test-cluster${{ env.E2E_NAME_SUFFIX }}"
+          TEST_IMAGE_NAME: "test-image${{ env.E2E_NAME_SUFFIX }}"
+          TEST_NAME_SUFFIX: "${{ env.E2E_NAME_SUFFIX }}"
         run: make ${{ matrix.test_target }}
         timeout-minutes: 120
+      - name: Clean Up Leftover Resources
+        if: always()
+        run: bash tools/cleanup-e2e-leftovers.sh "${E2E_NAME_SUFFIX}"
+        timeout-minutes: 15
 
   # Publishes the outcome of the E2E tests as a CloudWatch metric, so that a
   # CloudWatch alarm can make failures visible.
