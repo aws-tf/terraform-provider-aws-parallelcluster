@@ -48,7 +48,7 @@ Mappings:
   # choose. Referenced with '!FindInMap [Constants, E2ETestMetric, Namespace]'.
   Constants:
     E2ETestMetric:
-      Namespace: AWS/ParallelCluster
+      Namespace: ParallelCluster
 
 Conditions:
   HasProviderE2ETestAlarmAction: !Not [!Equals [!Ref ProviderE2ETestAlarmAction, '']]
