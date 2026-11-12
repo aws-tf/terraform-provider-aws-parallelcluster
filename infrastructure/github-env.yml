@@ -14,6 +14,18 @@ Parameters:
     Description: Name of the GitHub repository for the module.
     Type: String
     Default: terraform-aws-parallelcluster
+  ProviderE2ETestAlarmAction:
+    Description: >-
+      ARN of the action to trigger when the end-to-end tests of the provider fail.
+      Leave empty to create the alarm without any action.
+    Type: String
+    Default: ''
+  ModuleE2ETestAlarmAction:
+    Description: >-
+      ARN of the action to trigger when the end-to-end tests of the module fail.
+      Leave empty to create the alarm without any action.
+    Type: String
+    Default: ''
 
 Metadata:
   AWS::CloudFormation::Interface:
@@ -24,6 +36,23 @@ Metadata:
           - Organization
           - ProviderRepository
           - ModuleRepository
+      - Label:
+          default: Alarms
+        Parameters:
+          - ProviderE2ETestAlarmAction
+          - ModuleE2ETestAlarmAction
+
+Mappings:
+  # A mapping rather than a parameter: the namespace must match the one the E2E Tests
+  # workflow of both repositories publishes to, so it is not something the deployer gets to
+  # choose. Referenced with '!FindInMap [Constants, E2ETestMetric, Namespace]'.
+  Constants:
+    E2ETestMetric:
+      Namespace: AWS/ParallelCluster
+
+Conditions:
+  HasProviderE2ETestAlarmAction: !Not [!Equals [!Ref ProviderE2ETestAlarmAction, '']]
+  HasModuleE2ETestAlarmAction: !Not [!Equals [!Ref ModuleE2ETestAlarmAction, '']]
 
 Resources:
 
@@ -56,6 +85,7 @@ Resources:
                   - !Sub repo:${Organization}/${ProviderRepository}:ref:refs/tags/v*
       ManagedPolicyArns:
         - !Ref ProviderE2ETestExecutionPolicy
+        - !Ref E2ETestMetricPublishPolicy
       MaxSessionDuration: 7200
 
   ModuleE2ETestExecutionRole:
@@ -78,6 +108,7 @@ Resources:
                   - !Sub repo:${Organization}/${ModuleRepository}:ref:refs/tags/v*
       ManagedPolicyArns:
         - !Ref ModuleE2ETestExecutionPolicy
+        - !Ref E2ETestMetricPublishPolicy
       MaxSessionDuration: 7200
 
   ProviderE2ETestExecutionPolicy:
@@ -301,6 +332,75 @@ Resources:
               - !Sub arn:${AWS::Partition}:apigateway:${AWS::Region}::/tags/*
             Sid: APIGateway
 
+  E2ETestMetricPublishPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      Description: Permissions to publish the outcome of the end-to-end tests as a CloudWatch metric.
+      ManagedPolicyName: E2ETestMetricPublishPolicy
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action: cloudwatch:PutMetricData
+            Resource: '*'
+            Condition:
+              StringEquals:
+                cloudwatch:namespace: !FindInMap [Constants, E2ETestMetric, Namespace]
+                aws:RequestedRegion: !Ref AWS::Region
+            Sid: PutE2ETestMetric
+
+  ProviderE2ETestFailureAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: TerraformProviderE2ETestFailure
+      AlarmDescription: !Sub >-
+        The end-to-end tests of the Terraform provider failed.
+        The failing run is in https://github.com/${Organization}/${ProviderRepository}/actions/workflows/end-to-end-tests.yml
+      Namespace: !FindInMap [Constants, E2ETestMetric, Namespace]
+      MetricName: TerraformProviderE2ETestFailure
+      Dimensions:
+        - Name: Organization
+          Value: !Ref Organization
+        - Name: Branch
+          Value: main
+      Statistic: Maximum
+      Period: 60
+      EvaluationPeriods: 1
+      DatapointsToAlarm: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: missing
+      AlarmActions: !If
+        - HasProviderE2ETestAlarmAction
+        - [!Ref ProviderE2ETestAlarmAction]
+        - !Ref AWS::NoValue
+
+  ModuleE2ETestFailureAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: TerraformModuleE2ETestFailure
+      AlarmDescription: !Sub >-
+        The end-to-end tests of the Terraform module failed. 
+        The failing run is in https://github.com/${Organization}/${ModuleRepository}/actions/workflows/end-to-end-tests.yml
+      Namespace: !FindInMap [Constants, E2ETestMetric, Namespace]
+      MetricName: TerraformModuleE2ETestFailure
+      Dimensions:
+        - Name: Organization
+          Value: !Ref Organization
+        - Name: Branch
+          Value: main
+      Statistic: Maximum
+      Period: 60
+      EvaluationPeriods: 1
+      DatapointsToAlarm: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: missing
+      AlarmActions: !If
+        - HasModuleE2ETestAlarmAction
+        - [!Ref ModuleE2ETestAlarmAction]
+        - !Ref AWS::NoValue
+
   KeyPair:
     Type: AWS::EC2::KeyPair
     Properties:
@@ -355,3 +455,7 @@ Outputs:
     Value: !GetAtt ProviderE2ETestExecutionRole.Arn
   ModuleE2ETestExecutionRole:
     Value: !GetAtt ModuleE2ETestExecutionRole.Arn
+  ProviderE2ETestFailureAlarm:
+    Value: !GetAtt ProviderE2ETestFailureAlarm.Arn
+  ModuleE2ETestFailureAlarm:
+    Value: !GetAtt ModuleE2ETestFailureAlarm.Arn
