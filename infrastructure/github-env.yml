@@ -136,8 +136,19 @@ Resources:
               - ec2:DescribeSecurityGroupRules
               - ec2:CreateTags
               - ec2:DeleteTags
+              - ec2:DescribeImages
             Resource: '*'
             Sid: EC2
+          - Effect: Allow
+            Action:
+              - ec2:DeregisterImage
+            Resource: !Sub arn:${AWS::Partition}:ec2:*::image/*
+            Sid: EC2DeregisterImage
+          - Effect: Allow
+            Action:
+              - ec2:DeleteSnapshot
+            Resource: !Sub arn:${AWS::Partition}:ec2:*::snapshot/*
+            Sid: EC2DeleteSnapshot
           - Effect: Allow
             Action:
               - iam:GetPolicy
@@ -148,6 +159,7 @@ Resources:
               - iam:ListRolePolicies
               - iam:ListAttachedRolePolicies
               - iam:ListInstanceProfilesForRole
+              - iam:ListRoles
             Resource: '*'
             Sid: IAMRead
           - Effect: Allow
@@ -165,8 +177,15 @@ Resources:
           - Effect: Allow
             Action:
               - cloudformation:DescribeStacks
+              - cloudformation:DeleteStack
             Resource: !Sub arn:${AWS::Partition}:cloudformation:*:${AWS::AccountId}:stack/*
             Sid: CloudFormation
+          # ListStacks supports no resource-level permission.
+          - Effect: Allow
+            Action:
+              - cloudformation:ListStacks
+            Resource: '*'
+            Sid: CloudFormationList
 
   ModuleE2ETestExecutionPolicy:
     Type: AWS::IAM::ManagedPolicy
@@ -261,6 +280,12 @@ Resources:
               - cloudformation:GetTemplate
             Resource: !Sub arn:${AWS::Partition}:cloudformation:*:${AWS::AccountId}:stack/*
             Sid: CloudFormation
+          # ListStacks supports no resource-level permission.
+          - Effect: Allow
+            Action:
+              - cloudformation:ListStacks
+            Resource: '*'
+            Sid: CloudFormationList
           - Effect: Allow
             Action:
               - cloudformation:CreateChangeSet
