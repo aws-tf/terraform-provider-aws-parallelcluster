@@ -394,7 +394,7 @@ Resources:
       DatapointsToAlarm: 1
       Threshold: 1
       ComparisonOperator: GreaterThanOrEqualToThreshold
-      TreatMissingData: missing
+      TreatMissingData: ignore
       AlarmActions: !If
         - HasProviderE2ETestAlarmAction
         - [!Ref ProviderE2ETestAlarmAction]
@@ -420,7 +420,7 @@ Resources:
       DatapointsToAlarm: 1
       Threshold: 1
       ComparisonOperator: GreaterThanOrEqualToThreshold
-      TreatMissingData: missing
+      TreatMissingData: ignore
       AlarmActions: !If
         - HasModuleE2ETestAlarmAction
         - [!Ref ModuleE2ETestAlarmAction]
