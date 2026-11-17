@@ -72,7 +72,7 @@ resource "aws_route_table_association" "public" {
 
 data "aws-parallelcluster_list_official_images" "parent_image" {
   region       = var.region
-  os           = "alinux2"
+  os           = "alinux2023"
   architecture = "x86_64"
 }
 
