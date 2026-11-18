@@ -28,7 +28,7 @@ terraform {
   required_providers {
     aws-parallelcluster = {
       source  = "aws-tf/aws-parallelcluster"
-      version = "1.3.0"
+      version = "~> 1.0"
     }
   }
 }
