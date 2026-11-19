@@ -17,12 +17,12 @@
 # decision that deserves its own pull request.
 version: 2
 updates:
-  # Two Go modules: the provider at the root, and the generated OpenAPI client.
-  # Dependabot is not recursive, so listing only `/` would leave the client unscanned.
+  # One Go module, at the root.
+  # The generated OpenAPI client under `/internal/provider/openapi` is a package of it, not a module of its own, so
+  # `/` covers the whole repository.
   - package-ecosystem: gomod
     directories:
       - /
-      - /internal/provider/openapi
     schedule:
       interval: daily
     open-pull-requests-limit: 10
