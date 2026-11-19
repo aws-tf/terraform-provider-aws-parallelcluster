@@ -10,26 +10,13 @@ permissions:
 
 jobs:
   golangci:
-    strategy:
-      fail-fast: false
-      matrix:
-        # The oldest version we support, which is the `go` directive in go.mod,
-        # and the newest one golangci-lint can analyse.
-        name:
-          - Code Checks with Go 1.25.0
-          - Code Checks with Go 1.26.11
-        include:
-          - name: Code Checks with Go 1.25.0
-            go: 1.25.0
-          - name: Code Checks with Go 1.26.11
-            go: 1.26.11
     name: lint
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-go@v7
         with:
-          go-version: ${{ matrix.go }}
+          go-version-file: 'go.mod'
           cache: false
       # See: https://github.com/golangci/golangci-lint
       # Configuration: https://golangci-lint.run/usage/configuration/
