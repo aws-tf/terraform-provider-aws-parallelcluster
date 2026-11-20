@@ -1,6 +1,6 @@
 region = "us-east-1"
-api_stack_name = "ParallelClusterAPI-3162"
-api_version = "3.16.2"
+api_stack_name = "ParallelClusterAPI-3163"
+api_version = "3.16.3"
 
 os = "alinux2023"
 architecture = "x86_64"
