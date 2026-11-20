@@ -1,4 +1,5 @@
-# This workflow validates PRs and pushes with code checks, unit tests and end-to-end tests.
+# This workflow validates PRs and pushes with code checks, unit tests and the
+# Terraform examples.
 name: Continuous Integration
 
 on:
@@ -9,6 +10,25 @@ on:
   pull_request:
 
 jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: 'go.mod'
+          cache: false
+      # See: https://github.com/golangci/golangci-lint
+      # Configuration: https://golangci-lint.run/usage/configuration/
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v9
+        with:
+          version: v2.12.2
+          args: --timeout=30m
+
   unit-tests:
     name: Unit Tests
     runs-on: ubuntu-latest
@@ -122,26 +142,18 @@ jobs:
           name: coverage-report
           path: ${{env.COVERAGE_PATH}}
 
-  check-terraform:
-    name: Check Terraform
+  # `terraform fmt -recursive` covers the whole repository in one pass.
+  terraform-format:
+    name: Terraform Format
     runs-on: ubuntu-latest
     permissions:
       contents: read
     strategy:
       fail-fast: false
       matrix:
-        path:
-          - ./examples/provider
-          - ./examples/resources/aws-parallelcluster_cluster
-          - ./examples/resources/aws-parallelcluster_compute_fleet_status
-          - ./examples/resources/aws-parallelcluster_image
-          - ./examples/full/resources/aws-parallelcluster_cluster
-          - ./examples/full/resources/aws-parallelcluster_image
-          - ./examples/full/data-sources/aws-parallelcluster_cluster
-          - ./examples/full/data-sources/aws-parallelcluster_image
         # The oldest version HashiCorp still supports, and the newest one. HashiCorp
         # supports the current minor and the one before it, so 1.16 goes end of life when
-        # 1.18 is released: bump both entries then.
+        # 1.18 is released: bump both entries then, here and in Terraform Validate below.
         # See: https://endoflife.date/terraform
         terraform:
           - 1.16.7
@@ -154,20 +166,133 @@ jobs:
         with:
           terraform_version: ${{ matrix.terraform }}
           terraform_wrapper: false
-
-        # Covers the whole repository, the acceptance-test fixtures included, so it
-        # runs once per Terraform version.
       - name: Terraform Format
-        if: matrix.path == './examples/provider'
         run: terraform fmt -recursive -check -diff ./
+
+  # 'terraform validate' reads the provider schemas, so unlike 'fmt' it catches a
+  # provider change that breaks these configurations. It looks at one working
+  # directory at a time, hence the loop.
+  terraform-validate:
+    name: Terraform Validate
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        # Keep in step with Terraform Format above.
+        terraform:
+          - 1.16.7
+          - 1.17.2
+    env:
+      # One provider download shared by every `init` below, rather than one each.
+      TF_PLUGIN_CACHE_DIR: ${{ github.workspace }}/.terraform-plugin-cache
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v7
+      - name: Setup Terraform ${{ matrix.terraform }}
+        uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_version: ${{ matrix.terraform }}
+          terraform_wrapper: false
 
         # -backend=false: the examples declare no backend and validation needs no
         # state. -input=false: a missing value must fail, not hang. -upgrade: lock
-        # files are Git-ignored, so resolve what each example pins.
-      - name: Terraform Init
-        run: terraform -chdir=${{ matrix.path }} init -backend=false -input=false -upgrade -no-color
-        timeout-minutes: 10
-      - name: Terraform Validate
-        run: terraform -chdir=${{ matrix.path }} validate -no-color
-        timeout-minutes: 5
+        # files are Git-ignored, so resolve what the constraints allow.
+      - name: Validate every root configuration
+        run: |
+          mkdir -p "${TF_PLUGIN_CACHE_DIR}"
+
+          # The examples declaring the provider they need. Keep in step with the
+          # repository. The snippets under examples/data-sources are absent:
+          # tfplugindocs embeds those in the documentation, and they declare
+          # neither a provider nor the variables they read, so `init` fails.
+          configurations=(
+            ./examples/provider
+            ./examples/resources/aws-parallelcluster_cluster
+            ./examples/resources/aws-parallelcluster_compute_fleet_status
+            ./examples/resources/aws-parallelcluster_image
+            ./examples/full/resources/aws-parallelcluster_cluster
+            ./examples/full/resources/aws-parallelcluster_image
+            ./examples/full/data-sources/aws-parallelcluster_cluster
+            ./examples/full/data-sources/aws-parallelcluster_image
+          )
+
+          # Every configuration is validated even once one has failed, so that a
+          # run reports all of the broken ones.
+          invalid=()
+          for configuration in "${configurations[@]}"; do
+            echo "::group::${configuration}"
+            if terraform -chdir="${configuration}" init -backend=false -input=false -upgrade -no-color \
+              && terraform -chdir="${configuration}" validate -no-color; then
+              echo "${configuration}: valid"
+            else
+              invalid+=("${configuration}")
+            fi
+            echo "::endgroup::"
+          done
+          if [ ${#invalid[@]} -gt 0 ]; then
+            printf 'Invalid: %s\n' "${invalid[@]}" >&2
+            exit 1
+          fi
+          echo "All root configurations are valid."
+        timeout-minutes: 30
+
+  # Exercises the GNUmakefile targets a contributor uses to build the provider and
+  # install it locally, each one checked for the files it is supposed to leave
+  # behind, or to remove.
+  make:
+    name: Make
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      BUILDS: darwin_amd64 darwin_arm64 linux_amd64 windows_amd64
+      VERSION: 0.0.0-MakeValidator
+      INSTALL_PATH: .terraform.d/plugins/terraform.local/local/aws-parallelcluster
+      BINARY_PREFIX: terraform-provider-aws-parallelcluster
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: 'go.mod'
+          cache: true
+      - run: make build
+      - name: Post build check
+        run: |
+          for BUILD in $(echo ${BUILDS}); do
+            if [ ! -f build/${BUILD} ]; then
+              echo "Make build failed: ${BUILD} binary does not exist."
+              exit 1
+            fi
+          done
+      - run: make install
+      - name: Post install check
+        run: |
+          for BUILD in $(echo ${BUILDS}); do
+            BINARY_PATH=~/${INSTALL_PATH}/${VERSION}/${BUILD}/${BINARY_PREFIX}_${VERSION}
+            if [ ! -f "${BINARY_PATH}" ]; then
+              echo "Make install failed: ${BINARY_PATH} binary does not exist."
+              exit 1
+            fi
+          done
+      - run: make clean
+      - name: Post clean check
+        run: |
+          for BUILD in $(echo ${BUILDS}); do
+            if [ -f build/${BUILD} ]; then
+              echo "Make clean failed: ${BUILD} binary still exists."
+              exit 1
+            fi
+          done
+      - run: make uninstall
+      - name: Post uninstall check
+        run: |
+          for BUILD in $(echo ${BUILDS}); do
+            BINARY_PATH=~/${INSTALL_PATH}/${VERSION}/${BUILD}/${BINARY_PREFIX}_${VERSION}
+            if [ -f "${BINARY_PATH}" ]; then
+              echo "Make uninstall failed: ${BINARY_PATH} binary still exists."
+              exit 1
+            fi
+          done
 
