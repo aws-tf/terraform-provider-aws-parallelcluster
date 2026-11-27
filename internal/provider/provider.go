@@ -98,7 +98,7 @@ With AWS ParallelCluster, you can quickly build and deploy proof of concept and 
 				Optional:            true,
 			},
 			"api_stack_name": schema.StringAttribute{
-				MarkdownDescription: "The ParallelCluster cloudformation stack arn containing the endpoint and role outputs.",
+				MarkdownDescription: "The ParallelCluster cloudformation stack arn containing the endpoint and role outputs. Used to read the endpoint and role when unset or unknown.",
 				Optional:            true,
 			},
 			"use_user_role": schema.BoolAttribute{
@@ -249,7 +249,8 @@ func (unknownEndpointTransport) RoundTrip(*http.Request) (*http.Response, error)
 	return nil, errors.New("the provider cannot call the ParallelCluster API because its endpoint is not known yet. " +
 		"This happens when the provider attribute endpoint is set to a value known only after apply, " +
 		"such as an output of a ParallelCluster API stack with pending changes. " +
-		"To fix it, apply the API stack first with: terraform apply -target=<API stack resource>")
+		"To fix it, either set api_stack_name in the provider configuration to read the endpoint from the existing stack, " +
+		"or apply the API stack first with: terraform apply -target=<API stack resource>")
 }
 
 func (p *PclusterProvider) Configure(
@@ -327,7 +328,8 @@ func (p *PclusterProvider) Configure(
 		}
 
 		apiUrl, userRole, err := GetApiUrlAndRoleFromCfStack(cfg, name)
-		if err != nil {
+		// With an unknown endpoint, the stack may not exist yet: it is created by this apply.
+		if err != nil && !data.Endpoint.IsUnknown() {
 			resp.Diagnostics.AddError(
 				"Unable to retrieve ParallelCluster API cloudformation stack.",
 				fmt.Sprintf("%v", err),
@@ -335,8 +337,12 @@ func (p *PclusterProvider) Configure(
 			return
 		}
 
-		if data.Endpoint.IsNull() {
+		// The endpoint and role are read from the stack when unset or unknown (e.g. the stack has pending changes).
+		if url == "" {
 			url = apiUrl
+		}
+		if data.RoleArn.IsUnknown() {
+			sdata.role = userRole
 		}
 
 		if useUserRole {
@@ -373,7 +379,7 @@ func (p *PclusterProvider) Configure(
 	}
 	sdata.client = openapi.NewAPIClient(configuration)
 
-	if !data.RoleArn.IsNull() {
+	if !data.RoleArn.IsNull() && !data.RoleArn.IsUnknown() {
 		sdata.role = data.RoleArn.ValueString()
 	}
 

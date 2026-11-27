@@ -5,6 +5,8 @@
 **CHANGES**
 
 * Refresh API credentials between API requests to prevent expiration during the execution of a Terraform command.
+* Read `endpoint` and `role_arn` from the stack set in `api_stack_name` when they are not known at plan time.
+  Set `api_stack_name` to prevent `terraform plan` from failing when the ParallelCluster API stack has pending changes.
 
 **BUG FIX**
 
