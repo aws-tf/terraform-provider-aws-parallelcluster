@@ -16,6 +16,7 @@ package provider
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"os"
 	"time"
 
@@ -24,6 +25,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/apigateway"
 	"github.com/aws/aws-sdk-go-v2/service/cloudformation"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
+	"github.com/hashicorp/go-retryablehttp"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/provider/schema"
@@ -40,6 +42,24 @@ var (
 	apiStackInvokeUrlKeyName                   = "ParallelClusterApiInvokeUrl"
 	apiStackUserRoleKeyName                    = "ParallelClusterApiUserRole"
 )
+
+// Retries of failed PCAPI requests: exponential backoff 1s, 2s, 4s, 8s, 16s, then 30s (~4 minutes in total).
+// Retries stop anyway once the request signature expires (5 minutes).
+const (
+	pcapiRetryMax     = 12
+	pcapiRetryWaitMin = 1 * time.Second
+	pcapiRetryWaitMax = 30 * time.Second
+)
+
+// newPCAPIHTTPClient returns an HTTP client retrying failed PCAPI requests (network errors, 429, 5xx).
+func newPCAPIHTTPClient() *http.Client {
+	c := retryablehttp.NewClient()
+	c.RetryMax = pcapiRetryMax
+	c.RetryWaitMin = pcapiRetryWaitMin
+	c.RetryWaitMax = pcapiRetryWaitMax
+	c.ErrorHandler = retryablehttp.PassthroughErrorHandler // keep the actual PCAPI error once retries are exhausted
+	return c.StandardClient()
+}
 
 type configData struct {
 	client     *openapi.APIClient
@@ -356,6 +376,7 @@ func (p *PclusterProvider) Configure(
 			Description: "Parallel Cluster API",
 		},
 	}
+	configuration.HTTPClient = newPCAPIHTTPClient()
 	sdata.client = openapi.NewAPIClient(configuration)
 
 	if !data.RoleArn.IsNull() {
