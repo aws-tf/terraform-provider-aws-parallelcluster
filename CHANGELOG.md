@@ -2,6 +2,10 @@
 
 ## 1.3.0
 
+**BUG FIX**
+
+* Retry failed ParallelCluster API calls, to reduce the risk of clusters and images being tainted by transient failures.
+
 **CHANGES**
 
 * Refresh API credentials between API requests to prevent expiration during the execution of a Terraform command.
