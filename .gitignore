@@ -11,6 +11,7 @@ logs/
 # Terraform
 .terraform/
 .terraform.lock.hcl
+tools/dev-overrides.tfrc
 tfplan
 terraform.tfstate
 terraform.tfstate.backup
