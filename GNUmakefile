@@ -7,7 +7,7 @@ endif
 install_path = ~/.terraform.d/plugins/terraform.local/local/aws-parallelcluster/$(VERSION)
 file_name = terraform-provider-aws-parallelcluster_$(VERSION)
 
-.PHONY: testacc darwin_arm64 darwin_amd64 windows_amd64 linux_amd64 all install
+.PHONY: testacc darwin_arm64 darwin_amd64 windows_amd64 linux_amd64 all install uninstall uninstall_mirrors
 
 # Build
 darwin_arm64:
@@ -47,7 +47,17 @@ uninstall_windows_amd64:
 uninstall_linux_amd64:
 	rm -rf $(install_path)/linux_amd64/$(file_name)
 
-uninstall: uninstall_darwin_arm64 uninstall_darwin_amd64 uninstall_windows_amd64 uninstall_linux_amd64
+# Local mirrors searched by Terraform before the registry, for the current user.
+# See https://developer.hashicorp.com/terraform/cli/config/config-file#implied-local-mirror-directories
+mirror_paths = \
+	"$(HOME)/.terraform.d/plugins" \
+	"$(HOME)/.local/share/terraform/plugins"
+
+# Remove local builds of the provider from the local mirrors, so that terraform init installs the released provider.
+uninstall_mirrors:
+	for dir in $(mirror_paths); do rm -rfv "$$dir/registry.terraform.io/aws-tf/aws-parallelcluster"; done
+
+uninstall: uninstall_darwin_arm64 uninstall_darwin_amd64 uninstall_windows_amd64 uninstall_linux_amd64 uninstall_mirrors
 
 # Clean
 clean:

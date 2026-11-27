@@ -60,6 +60,10 @@ terraform {
 
 The hyphen in the version denotes a prerelease and will not be picked up by the version filter unless explicitly defined.
 
+To remove the local installs, run `make uninstall`.
+It also removes any local build of the provider found under `registry.terraform.io/aws-tf/aws-parallelcluster` in the user's local mirrors Terraform searches before the registry (e.g. `~/.terraform.d/plugins`).
+Such a build is silently installed by `terraform init` instead of the released provider, and reported as `(unauthenticated)`.
+
 ## Documentation
 To generate or update documentation, run `go generate`. Documentation will be generated with Terraform-plugin-docs.
 
