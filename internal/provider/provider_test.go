@@ -16,6 +16,7 @@ package provider
 import (
 	"context"
 	"errors"
+	"net/http"
 	"os"
 	"reflect"
 	"strings"
@@ -167,5 +168,14 @@ func TestUnitConfigureAWSv4(t *testing.T) {
 	}
 	if !reflect.DeepEqual(awsv4, expected) {
 		t.Fatalf("Error matching output and expected. \nO: %#v\nE: %#v", awsv4, expected)
+	}
+}
+
+func TestUnitUnknownEndpointTransport(t *testing.T) {
+	t.Parallel()
+
+	_, err := (&http.Client{Transport: unknownEndpointTransport{}}).Get("/v3/clusters/test")
+	if err == nil || !strings.Contains(err.Error(), "its endpoint is not known yet") {
+		t.Fatalf("Error message did not explain the unknown endpoint. \nO: %v", err)
 	}
 }

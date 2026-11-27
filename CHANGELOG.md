@@ -6,6 +6,11 @@
 
 * Refresh API credentials between API requests to prevent expiration during the execution of a Terraform command.
 
+**BUG FIX**
+
+* Improve the error returned when the ParallelCluster API endpoint is not known at plan time, e.g. because the API stack has pending changes:
+  the misleading `unsupported protocol scheme ""` is replaced by an error that explains the cause and how to fix it.
+
 ## 1.2.0
 
 **BUG FIX**

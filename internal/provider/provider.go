@@ -15,7 +15,9 @@ package provider
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"net/http"
 	"os"
 	"time"
 
@@ -240,6 +242,16 @@ func ConfigureAWSv4(cfg aws.Config, role string) (openapi.AWSv4, time.Time, erro
 	return awsv4, expiration, nil
 }
 
+// unknownEndpointTransport fails every request with an explanation of why the API endpoint is unknown.
+type unknownEndpointTransport struct{}
+
+func (unknownEndpointTransport) RoundTrip(*http.Request) (*http.Response, error) {
+	return nil, errors.New("the provider cannot call the ParallelCluster API because its endpoint is not known yet. " +
+		"This happens when the provider attribute endpoint is set to a value known only after apply, " +
+		"such as an output of a ParallelCluster API stack with pending changes. " +
+		"To fix it, apply the API stack first with: terraform apply -target=<API stack resource>")
+}
+
 func (p *PclusterProvider) Configure(
 	ctx context.Context,
 	req provider.ConfigureRequest,
@@ -355,6 +367,9 @@ func (p *PclusterProvider) Configure(
 			URL:         url,
 			Description: "Parallel Cluster API",
 		},
+	}
+	if url == "" {
+		configuration.HTTPClient = &http.Client{Transport: unknownEndpointTransport{}}
 	}
 	sdata.client = openapi.NewAPIClient(configuration)
 
