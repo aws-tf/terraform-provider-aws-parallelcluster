@@ -39,7 +39,7 @@ terraform {
 ### Optional
 
 - `api_name` (String) The name of the ParallelCluster API. Used to retrieve the api endpoint if not given. Defaults to ParallelCluster.
-- `api_stack_name` (String) The ParallelCluster cloudformation stack arn containing the endpoint and role outputs.
+- `api_stack_name` (String) The ParallelCluster cloudformation stack arn containing the endpoint and role outputs. Used to read the endpoint and role when unset or unknown.
 - `aws_key` (String) The aws key used for deploying resources and query data sources.
 - `aws_secret` (String, Sensitive) The aws secret used for deploying resources and query data sources.
 - `endpoint` (String) The endpoint of the ParallelCluster API. If unset will be autodetected.
