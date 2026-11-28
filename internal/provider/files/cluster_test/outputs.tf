@@ -25,6 +25,29 @@ output "cluster_compute_fleet_resource" {
   value = resource.aws-parallelcluster_compute_fleet_status.test.status
 }
 
+locals {
+  # Some attributes of the `aws-parallelcluster_cluster` data source are inherently time varying:
+  # they change on their own while the cluster is alive, with no cluster update involved.
+  # Dropping them from the output is the only way to tolerate this with terraform-plugin-testing.
+  #   - `log_streams` grows as CloudWatch creates a stream the first time a node writes to a log
+  #      file (e.g. `pcluster-check-update` appearing minutes after the other streams).
+  #   - `stack_events` grows as CloudFormation keeps appending events.
+  #   - `cluster.computeFleetStatus` transitions on its own (START_REQUESTED -> STARTING -> RUNNING).
+  time_varying_data_source_attributes = ["log_streams", "stack_events"]
+  time_varying_cluster_attributes     = ["computeFleetStatus"]
+}
+
 output "cluster_data_source" {
-  value = data.aws-parallelcluster_cluster.test
+  value = merge(
+    {
+      for k, v in data.aws-parallelcluster_cluster.test : k => v
+      if !contains(local.time_varying_data_source_attributes, k)
+    },
+    {
+      cluster = {
+        for k, v in data.aws-parallelcluster_cluster.test.cluster : k => v
+        if !contains(local.time_varying_cluster_attributes, k)
+      }
+    },
+  )
 }
